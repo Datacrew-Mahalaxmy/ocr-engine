@@ -1,0 +1,38 @@
+# ============================================================
+# Transformer OCR System — Dependencies
+# All free, no traditional OCR (no Tesseract, no PaddleOCR)
+# ============================================================
+
+# Core ML
+torch>=2.0.0
+torchvision>=0.15.0
+transformers>=4.35.0
+
+# ---- Engine 1: Surya (pure transformer, best quality) ------
+# Install: pip install surya-ocr
+surya-ocr>=0.4.0
+
+# ---- Engine 2: DocTR (DBNet + transformer recognition) -----
+# Install: pip install python-doctr[torch]
+python-doctr[torch]>=0.8.0
+
+# ---- PDF / Image I/O ----------------------------------------
+pdf2image>=1.16.0        # PDF → PIL (requires poppler system package)
+Pillow>=10.0.0
+pillow-heif>=0.13.0      # HEIF/HEIC support
+
+# ---- Image processing ---------------------------------------
+opencv-python>=4.8.0
+numpy>=1.24.0
+
+# ---- General ------------------------------------------------
+pyyaml>=6.0
+tqdm>=4.65.0
+pandas>=2.0.0
+matplotlib>=3.7.0
+
+# ---- System note --------------------------------------------
+# For pdf2image you also need system-level poppler:
+#   Ubuntu/Debian : sudo apt-get install poppler-utils
+#   macOS         : brew install poppler
+#   Windows       : https://github.com/oschwartz10612/poppler-windows

@@ -1,0 +1,821 @@
+2026-02-24 18:35:05,573 - __main__ - INFO - Starting Transformer OCR System
+2026-02-24 18:35:05,573 - __main__ - INFO - Initializing Document Processor...
+2026-02-24 18:35:05,573 - src.processor - INFO - Initializing Text Detector...
+2026-02-24 18:35:07,363 - huggingface_hub.file_download - WARNING - Xet Storage is enabled for this repo, but the 'hf_xet' package is not installed. Falling back to regular HTTP download. For better performance, install the package with: `pip install huggingface_hub[hf_xet]` or `pip install hf_xet`
+2026-02-24 18:35:15,554 - src.models - ERROR - Failed to load detector: 
+DetrConvEncoder requires the timm library but it was not found in your environment. You can install it with pip:
+`pip install timm`. Please note that you may need to restart your runtime after installation.
+
+2026-02-24 18:35:15,554 - __main__ - ERROR - Error during processing: 
+DetrConvEncoder requires the timm library but it was not found in your environment. You can install it with pip:
+`pip install timm`. Please note that you may need to restart your runtime after installation.
+Traceback (most recent call last):
+  File "C:\Users\Admin\Downloads\transformer_ocr\main.py", line 68, in main
+    processor = DocumentProcessor(config)
+  File "C:\Users\Admin\Downloads\transformer_ocr\src\processor.py", line 26, in __init__
+    self.detector = TextDetector(config)
+  File "C:\Users\Admin\Downloads\transformer_ocr\src\detector.py", line 17, in __init__
+    self.detector = TransformerDetector(
+  File "C:\Users\Admin\Downloads\transformer_ocr\src\models.py", line 29, in __init__
+    self.model = DetrForObjectDetection.from_pretrained(model_name).to(self.device)
+  File "C:\Users\Admin\anaconda3\envs\task\lib\site-packages\transformers\modeling_utils.py", line 277, in _wrapper
+    return func(*args, **kwargs)
+  File "C:\Users\Admin\anaconda3\envs\task\lib\site-packages\transformers\modeling_utils.py", line 4971, in from_pretrained
+    model = cls(config, *model_args, **model_kwargs)
+  File "C:\Users\Admin\anaconda3\envs\task\lib\site-packages\transformers\models\detr\modeling_detr.py", line 1236, in __init__
+    self.model = DetrModel(config)
+  File "C:\Users\Admin\anaconda3\envs\task\lib\site-packages\transformers\models\detr\modeling_detr.py", line 1044, in __init__
+    backbone = DetrConvEncoder(config)
+  File "C:\Users\Admin\anaconda3\envs\task\lib\site-packages\transformers\models\detr\modeling_detr.py", line 264, in __init__
+    requires_backends(self, ["timm"])
+  File "C:\Users\Admin\anaconda3\envs\task\lib\site-packages\transformers\utils\import_utils.py", line 2143, in requires_backends
+    raise ImportError("".join(failed))
+ImportError: 
+DetrConvEncoder requires the timm library but it was not found in your environment. You can install it with pip:
+`pip install timm`. Please note that you may need to restart your runtime after installation.
+
+2026-02-24 18:36:21,136 - __main__ - INFO - Starting Transformer OCR System
+2026-02-24 18:36:21,145 - __main__ - INFO - Initializing Document Processor...
+2026-02-24 18:36:21,145 - src.processor - INFO - Initializing Text Detector...
+2026-02-24 18:36:22,635 - timm.models._builder - INFO - Loading pretrained weights from Hugging Face hub (timm/resnet50.a1_in1k)
+2026-02-24 18:36:22,867 - huggingface_hub.file_download - WARNING - Xet Storage is enabled for this repo, but the 'hf_xet' package is not installed. Falling back to regular HTTP download. For better performance, install the package with: `pip install huggingface_hub[hf_xet]` or `pip install hf_xet`
+2026-02-24 18:36:28,042 - timm.models._hub - INFO - [timm/resnet50.a1_in1k] Safe alternative available for 'pytorch_model.bin' (as 'model.safetensors'). Loading weights using safetensors.
+2026-02-24 18:36:28,133 - timm.models._builder - INFO - Missing keys (fc.weight, fc.bias) discovered while loading pretrained weights. This is expected if model is being adapted.
+2026-02-24 18:36:28,352 - src.models - INFO - Loaded detector facebook/detr-resnet-50 on cpu
+2026-02-24 18:36:28,352 - src.processor - INFO - Initializing Text Recognizer...
+2026-02-24 18:36:34,176 - huggingface_hub.file_download - WARNING - Xet Storage is enabled for this repo, but the 'hf_xet' package is not installed. Falling back to regular HTTP download. For better performance, install the package with: `pip install huggingface_hub[hf_xet]` or `pip install hf_xet`
+2026-02-24 18:37:08,074 - src.models - INFO - Loaded recognizer microsoft/trocr-base-printed on cpu
+2026-02-24 18:37:08,074 - src.processor - INFO - DocumentProcessor initialized on cpu
+2026-02-24 18:37:08,074 - __main__ - INFO - Processing PDF: subbarao_bank_statement.pdf
+2026-02-24 18:37:08,074 - src.processor - INFO - Processing PDF: subbarao_bank_statement.pdf
+2026-02-24 18:37:09,288 - src.processor - INFO - Converted 1 pages from PDF
+2026-02-24 18:37:11,612 - src.utils - INFO - Saved results to results\subbarao_bank_statement_results.json
+2026-02-24 18:37:11,614 - src.utils - INFO - Exported text to results\subbarao_bank_statement_text.txt
+2026-02-24 18:37:11,614 - __main__ - INFO - Processed 0 text regions
+2026-02-24 18:37:11,615 - __main__ - INFO - Results saved to results
+2026-02-24 18:37:11,615 - __main__ - INFO - Processing complete!
+2026-02-24 18:39:08,566 - __main__ - INFO - Starting Transformer OCR System
+2026-02-24 18:39:08,566 - __main__ - INFO - Initializing Document Processor...
+2026-02-24 18:39:08,566 - src.processor - INFO - Initializing Text Detector...
+2026-02-24 18:39:09,205 - src.models - ERROR - Failed to load detector: tiennvcs/detr-layout-document is not a local folder and is not a valid model identifier listed on 'https://huggingface.co/models'
+If this is a private repository, make sure to pass a token having permission to this repo either by logging in with `hf auth login` or by passing `token=<your_token>`
+2026-02-24 18:39:09,205 - __main__ - ERROR - Error during processing: tiennvcs/detr-layout-document is not a local folder and is not a valid model identifier listed on 'https://huggingface.co/models'
+If this is a private repository, make sure to pass a token having permission to this repo either by logging in with `hf auth login` or by passing `token=<your_token>`
+Traceback (most recent call last):
+  File "C:\Users\Admin\anaconda3\envs\task\lib\site-packages\huggingface_hub\utils\_http.py", line 403, in hf_raise_for_status
+    response.raise_for_status()
+  File "C:\Users\Admin\anaconda3\envs\task\lib\site-packages\requests\models.py", line 1026, in raise_for_status
+    raise HTTPError(http_error_msg, response=self)
+requests.exceptions.HTTPError: 401 Client Error: Unauthorized for url: https://huggingface.co/tiennvcs/detr-layout-document/resolve/main/preprocessor_config.json
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "C:\Users\Admin\anaconda3\envs\task\lib\site-packages\transformers\utils\hub.py", line 479, in cached_files
+    hf_hub_download(
+  File "C:\Users\Admin\anaconda3\envs\task\lib\site-packages\huggingface_hub\utils\_validators.py", line 114, in _inner_fn
+    return fn(*args, **kwargs)
+  File "C:\Users\Admin\anaconda3\envs\task\lib\site-packages\huggingface_hub\file_download.py", line 1014, in hf_hub_download
+    return _hf_hub_download_to_cache_dir(
+  File "C:\Users\Admin\anaconda3\envs\task\lib\site-packages\huggingface_hub\file_download.py", line 1121, in _hf_hub_download_to_cache_dir
+    _raise_on_head_call_error(head_call_error, force_download, local_files_only)
+  File "C:\Users\Admin\anaconda3\envs\task\lib\site-packages\huggingface_hub\file_download.py", line 1662, in _raise_on_head_call_error
+    raise head_call_error
+  File "C:\Users\Admin\anaconda3\envs\task\lib\site-packages\huggingface_hub\file_download.py", line 1550, in _get_metadata_or_catch_error
+    metadata = get_hf_file_metadata(
+  File "C:\Users\Admin\anaconda3\envs\task\lib\site-packages\huggingface_hub\utils\_validators.py", line 114, in _inner_fn
+    return fn(*args, **kwargs)
+  File "C:\Users\Admin\anaconda3\envs\task\lib\site-packages\huggingface_hub\file_download.py", line 1467, in get_hf_file_metadata
+    r = _request_wrapper(
+  File "C:\Users\Admin\anaconda3\envs\task\lib\site-packages\huggingface_hub\file_download.py", line 283, in _request_wrapper
+    response = _request_wrapper(
+  File "C:\Users\Admin\anaconda3\envs\task\lib\site-packages\huggingface_hub\file_download.py", line 307, in _request_wrapper
+    hf_raise_for_status(response)
+  File "C:\Users\Admin\anaconda3\envs\task\lib\site-packages\huggingface_hub\utils\_http.py", line 453, in hf_raise_for_status
+    raise _format(RepositoryNotFoundError, message, response) from e
+huggingface_hub.errors.RepositoryNotFoundError: 401 Client Error. (Request ID: Root=1-699da2f3-0987e3ff58f54a413221b603;ba3fdf7c-0864-4831-8989-a9053ac22fef)
+
+Repository Not Found for url: https://huggingface.co/tiennvcs/detr-layout-document/resolve/main/preprocessor_config.json.
+Please make sure you specified the correct `repo_id` and `repo_type`.
+If you are trying to access a private or gated repo, make sure you are authenticated. For more details, see https://huggingface.co/docs/huggingface_hub/authentication
+Invalid username or password.
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "C:\Users\Admin\Downloads\transformer_ocr\main.py", line 68, in main
+    processor = DocumentProcessor(config)
+  File "C:\Users\Admin\Downloads\transformer_ocr\src\processor.py", line 26, in __init__
+    self.detector = TextDetector(config)
+  File "C:\Users\Admin\Downloads\transformer_ocr\src\detector.py", line 17, in __init__
+    self.detector = TransformerDetector(
+  File "C:\Users\Admin\Downloads\transformer_ocr\src\models.py", line 28, in __init__
+    self.processor = DetrImageProcessor.from_pretrained(model_name)
+  File "C:\Users\Admin\anaconda3\envs\task\lib\site-packages\transformers\image_processing_base.py", line 201, in from_pretrained
+    image_processor_dict, kwargs = cls.get_image_processor_dict(pretrained_model_name_or_path, **kwargs)
+  File "C:\Users\Admin\anaconda3\envs\task\lib\site-packages\transformers\image_processing_base.py", line 333, in get_image_processor_dict
+    resolved_image_processor_files = [
+  File "C:\Users\Admin\anaconda3\envs\task\lib\site-packages\transformers\image_processing_base.py", line 337, in <listcomp>
+    resolved_file := cached_file(
+  File "C:\Users\Admin\anaconda3\envs\task\lib\site-packages\transformers\utils\hub.py", line 322, in cached_file
+    file = cached_files(path_or_repo_id=path_or_repo_id, filenames=[filename], **kwargs)
+  File "C:\Users\Admin\anaconda3\envs\task\lib\site-packages\transformers\utils\hub.py", line 511, in cached_files
+    raise OSError(
+OSError: tiennvcs/detr-layout-document is not a local folder and is not a valid model identifier listed on 'https://huggingface.co/models'
+If this is a private repository, make sure to pass a token having permission to this repo either by logging in with `hf auth login` or by passing `token=<your_token>`
+2026-02-24 18:40:18,679 - __main__ - INFO - Starting Transformer OCR System
+2026-02-24 18:40:18,679 - __main__ - INFO - Initializing Document Processor...
+2026-02-24 18:40:18,692 - src.processor - INFO - Initializing Text Detector...
+2026-02-24 18:40:21,463 - huggingface_hub.file_download - WARNING - Xet Storage is enabled for this repo, but the 'hf_xet' package is not installed. Falling back to regular HTTP download. For better performance, install the package with: `pip install huggingface_hub[hf_xet]` or `pip install hf_xet`
+2026-02-24 18:40:29,081 - timm.models._builder - INFO - Loading pretrained weights from Hugging Face hub (timm/resnet50.a1_in1k)
+2026-02-24 18:40:29,324 - timm.models._hub - INFO - [timm/resnet50.a1_in1k] Safe alternative available for 'pytorch_model.bin' (as 'model.safetensors'). Loading weights using safetensors.
+2026-02-24 18:40:29,368 - timm.models._builder - INFO - Missing keys (fc.weight, fc.bias) discovered while loading pretrained weights. This is expected if model is being adapted.
+2026-02-24 18:40:29,610 - src.models - INFO - Loaded detector TahaDouaji/detr-doc-table-detection on cpu
+2026-02-24 18:40:29,610 - src.processor - INFO - Initializing Text Recognizer...
+2026-02-24 18:40:33,980 - src.models - INFO - Loaded recognizer microsoft/trocr-base-printed on cpu
+2026-02-24 18:40:33,987 - src.processor - INFO - DocumentProcessor initialized on cpu
+2026-02-24 18:40:33,987 - __main__ - INFO - Processing PDF: subbarao_bank_statement.pdf
+2026-02-24 18:40:33,987 - src.processor - INFO - Processing PDF: subbarao_bank_statement.pdf
+2026-02-24 18:40:34,536 - src.processor - INFO - Converted 1 pages from PDF
+2026-02-24 18:41:24,886 - src.utils - INFO - Saved results to results\subbarao_bank_statement_results.json
+2026-02-24 18:41:24,904 - src.utils - INFO - Exported text to results\subbarao_bank_statement_text.txt
+2026-02-24 18:41:24,905 - __main__ - INFO - Processed 4 text regions
+2026-02-24 18:41:24,905 - __main__ - INFO - Results saved to results
+2026-02-24 18:41:24,905 - __main__ - INFO - Processing complete!
+2026-02-24 18:45:25,806 - __main__ - INFO - Starting Transformer OCR System
+2026-02-24 18:45:25,822 - __main__ - INFO - Initializing Document Processor...
+2026-02-24 18:45:25,822 - src.processor - INFO - Initializing Text Detector...
+2026-02-24 18:45:27,452 - timm.models._builder - INFO - Loading pretrained weights from Hugging Face hub (timm/resnet50.a1_in1k)
+2026-02-24 18:45:27,797 - timm.models._hub - INFO - [timm/resnet50.a1_in1k] Safe alternative available for 'pytorch_model.bin' (as 'model.safetensors'). Loading weights using safetensors.
+2026-02-24 18:45:27,852 - timm.models._builder - INFO - Missing keys (fc.weight, fc.bias) discovered while loading pretrained weights. This is expected if model is being adapted.
+2026-02-24 18:45:28,104 - src.models - INFO - Loaded detector TahaDouaji/detr-doc-table-detection on cpu
+2026-02-24 18:45:28,105 - src.processor - INFO - Initializing Text Recognizer...
+2026-02-24 18:45:32,838 - src.models - INFO - Loaded recognizer microsoft/trocr-base-printed on cpu
+2026-02-24 18:45:32,838 - src.processor - INFO - DocumentProcessor initialized on cpu
+2026-02-24 18:45:32,838 - __main__ - INFO - Processing PDF: scanned_example_1.pdf
+2026-02-24 18:45:32,838 - src.processor - INFO - Processing PDF: scanned_example_1.pdf
+2026-02-24 18:45:33,544 - src.processor - INFO - Converted 1 pages from PDF
+2026-02-24 18:45:50,993 - src.utils - INFO - Saved results to results\scanned_example_1_results.json
+2026-02-24 18:45:51,008 - src.utils - INFO - Exported text to results\scanned_example_1_text.txt
+2026-02-24 18:45:51,008 - __main__ - INFO - Processed 2 text regions
+2026-02-24 18:45:51,008 - __main__ - INFO - Results saved to results
+2026-02-24 18:45:51,008 - __main__ - INFO - Processing complete!
+2026-02-24 18:47:21,544 - __main__ - INFO - Starting Transformer OCR System
+2026-02-24 18:47:21,555 - __main__ - INFO - Initializing Document Processor...
+2026-02-24 18:47:21,555 - src.processor - INFO - Initializing Text Detector...
+2026-02-24 18:47:22,609 - src.models - ERROR - Failed to load detector: Can't load image processor for 'HURIDOCS/pdf-document-layout-analysis'. If you were trying to load it from 'https://huggingface.co/models', make sure you don't have a local directory with the same name. Otherwise, make sure 'HURIDOCS/pdf-document-layout-analysis' is the correct path to a directory containing a preprocessor_config.json file
+2026-02-24 18:47:22,609 - __main__ - ERROR - Error during processing: Can't load image processor for 'HURIDOCS/pdf-document-layout-analysis'. If you were trying to load it from 'https://huggingface.co/models', make sure you don't have a local directory with the same name. Otherwise, make sure 'HURIDOCS/pdf-document-layout-analysis' is the correct path to a directory containing a preprocessor_config.json file
+Traceback (most recent call last):
+  File "C:\Users\Admin\anaconda3\envs\task\lib\site-packages\transformers\image_processing_base.py", line 354, in get_image_processor_dict
+    resolved_image_processor_file = resolved_image_processor_files[0]
+IndexError: list index out of range
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Users\Admin\Downloads\transformer_ocr\main.py", line 68, in main
+    processor = DocumentProcessor(config)
+  File "C:\Users\Admin\Downloads\transformer_ocr\src\processor.py", line 26, in __init__
+    self.detector = TextDetector(config)
+  File "C:\Users\Admin\Downloads\transformer_ocr\src\detector.py", line 17, in __init__
+    self.detector = TransformerDetector(
+  File "C:\Users\Admin\Downloads\transformer_ocr\src\models.py", line 28, in __init__
+    self.processor = DetrImageProcessor.from_pretrained(model_name)
+  File "C:\Users\Admin\anaconda3\envs\task\lib\site-packages\transformers\image_processing_base.py", line 201, in from_pretrained
+    image_processor_dict, kwargs = cls.get_image_processor_dict(pretrained_model_name_or_path, **kwargs)
+  File "C:\Users\Admin\anaconda3\envs\task\lib\site-packages\transformers\image_processing_base.py", line 361, in get_image_processor_dict
+    raise OSError(
+OSError: Can't load image processor for 'HURIDOCS/pdf-document-layout-analysis'. If you were trying to load it from 'https://huggingface.co/models', make sure you don't have a local directory with the same name. Otherwise, make sure 'HURIDOCS/pdf-document-layout-analysis' is the correct path to a directory containing a preprocessor_config.json file
+2026-02-24 18:49:26,580 - __main__ - INFO - Starting Transformer OCR System
+2026-02-24 18:49:26,591 - __main__ - INFO - Initializing Document Processor...
+2026-02-24 18:49:26,591 - src.processor - INFO - Initializing Text Detector...
+2026-02-24 18:49:27,283 - src.models - ERROR - Failed to load detector: keremberke/yolor-document-detection is not a local folder and is not a valid model identifier listed on 'https://huggingface.co/models'
+If this is a private repository, make sure to pass a token having permission to this repo either by logging in with `hf auth login` or by passing `token=<your_token>`
+2026-02-24 18:49:27,284 - src.detector - WARNING - Failed to load keremberke/yolor-document-detection: keremberke/yolor-document-detection is not a local folder and is not a valid model identifier listed on 'https://huggingface.co/models'
+If this is a private repository, make sure to pass a token having permission to this repo either by logging in with `hf auth login` or by passing `token=<your_token>`
+2026-02-24 18:49:28,403 - timm.models._builder - INFO - Loading pretrained weights from Hugging Face hub (timm/resnet50.a1_in1k)
+2026-02-24 18:49:28,653 - timm.models._hub - INFO - [timm/resnet50.a1_in1k] Safe alternative available for 'pytorch_model.bin' (as 'model.safetensors'). Loading weights using safetensors.
+2026-02-24 18:49:28,704 - timm.models._builder - INFO - Missing keys (fc.weight, fc.bias) discovered while loading pretrained weights. This is expected if model is being adapted.
+2026-02-24 18:49:29,010 - src.models - INFO - Loaded detector facebook/detr-resnet-50 on cpu
+2026-02-24 18:49:29,010 - src.detector - INFO - Loaded detector: facebook/detr-resnet-50
+2026-02-24 18:49:29,010 - src.processor - INFO - Initializing Text Recognizer...
+2026-02-24 18:49:33,825 - src.models - INFO - Loaded recognizer microsoft/trocr-base-printed on cpu
+2026-02-24 18:49:33,825 - src.processor - INFO - DocumentProcessor initialized on cpu
+2026-02-24 18:49:33,825 - __main__ - INFO - Processing PDF: scanned_example_1.pdf
+2026-02-24 18:49:33,825 - src.processor - INFO - Processing PDF: scanned_example_1.pdf
+2026-02-24 18:49:34,601 - src.processor - INFO - Converted 1 pages from PDF
+2026-02-24 18:49:36,723 - src.detector - WARNING - No text regions detected by any model
+2026-02-24 18:49:36,735 - src.utils - INFO - Saved results to results\scanned_example_1_results.json
+2026-02-24 18:49:36,738 - src.utils - INFO - Exported text to results\scanned_example_1_text.txt
+2026-02-24 18:49:36,738 - __main__ - INFO - Processed 0 text regions
+2026-02-24 18:49:36,738 - __main__ - INFO - Results saved to results
+2026-02-24 18:49:36,738 - __main__ - INFO - Processing complete!
+2026-02-25 05:24:20,365 [INFO] __main__: === Transformer OCR System Starting ===
+2026-02-25 05:25:05,050 [INFO] __main__: === Transformer OCR System Starting ===
+2026-02-25 05:25:05,056 [INFO] src.processor: Initialising DocumentProcessor on device=cpu
+2026-02-25 05:25:05,056 [INFO] src.processor: Engine requested: surya
+2026-02-25 05:25:05,056 [INFO] src.detector: Initialising OCR engine via EngineFactory...
+2026-02-25 05:25:24,951 [ERROR] src.models: Surya load failed: unsupported operand type(s) for |: 'torch._C._TensorMeta' and 'NoneType'
+2026-02-25 05:25:24,951 [WARNING] src.models: Surya unavailable: unsupported operand type(s) for |: 'torch._C._TensorMeta' and 'NoneType'
+2026-02-25 05:26:26,785 [INFO] __main__: === Transformer OCR System Starting ===
+2026-02-25 05:26:26,794 [INFO] src.processor: Initialising DocumentProcessor on device=cpu
+2026-02-25 05:26:26,794 [INFO] src.processor: Engine requested: doctr
+2026-02-25 05:26:26,794 [INFO] src.detector: Initialising OCR engine via EngineFactory...
+2026-02-25 05:26:26,997 [INFO] root: PyTorch version 2.8.0 available.
+2026-02-25 05:26:35,714 [INFO] src.models: Loading DocTR OCR predictor (DBNet + CRNN/transformer)...
+2026-02-25 05:26:53,423 [INFO] src.detector: Active engine: DocTROCREngine
+2026-02-25 05:26:53,426 [INFO] src.processor: DocumentProcessor ready
+2026-02-25 05:26:53,430 [INFO] __main__: Processing PDF: scanned_example_1.pdf
+2026-02-25 05:26:54,814 [INFO] src.processor: Converted 1 pages at 300 dpi
+2026-02-25 05:27:35,394 [INFO] __main__: Found 112 text regions — saved to results
+2026-02-25 05:27:35,394 [INFO] __main__: === Done ===
+2026-02-25 05:40:44,316 [INFO] __main__: === Transformer OCR System Starting ===
+2026-02-25 05:40:44,331 [INFO] src.processor: Initialising DocumentProcessor on device=cpu
+2026-02-25 05:40:44,331 [INFO] src.processor: Engine requested: surya
+2026-02-25 05:40:44,332 [INFO] src.detector: Initialising OCR engine via EngineFactory...
+2026-02-25 05:40:44,337 [ERROR] src.models: Surya load failed: No module named 'surya.model'
+2026-02-25 05:40:44,337 [WARNING] src.models: Surya unavailable: No module named 'surya.model'
+2026-02-25 05:42:31,842 [INFO] __main__: === Transformer OCR System Starting ===
+2026-02-25 05:42:31,849 [INFO] src.processor: Initialising DocumentProcessor on device=cpu
+2026-02-25 05:42:31,850 [INFO] src.processor: Engine requested: surya
+2026-02-25 05:42:31,850 [INFO] src.detector: Initialising OCR engine via EngineFactory...
+2026-02-25 05:42:55,861 [ERROR] src.models: Surya load failed (both APIs tried): No module named 'surya.model'
+2026-02-25 05:42:55,861 [WARNING] src.models: Surya unavailable: No module named 'surya.model'
+2026-02-25 05:47:58,664 [INFO] __main__: === Transformer OCR System Starting ===
+2026-02-25 05:47:58,677 [INFO] src.processor: Initialising DocumentProcessor on device=cpu
+2026-02-25 05:47:58,678 [INFO] src.processor: Engine requested: surya
+2026-02-25 05:47:58,678 [INFO] src.detector: Initialising OCR engine via EngineFactory...
+2026-02-25 05:48:14,601 [INFO] src.models: Loading Surya detection predictor (>=0.17)...
+2026-02-25 05:48:28,645 [INFO] src.models: Loading Surya recognition predictor (>=0.17)...
+2026-02-25 05:48:28,645 [ERROR] src.models: Surya load failed on both APIs: No module named 'surya.model'
+2026-02-25 05:48:28,645 [WARNING] src.models: Surya unavailable: Could not load Surya. Make sure 'requests' is installed: pip install requests
+Original error: No module named 'surya.model'
+2026-02-25 05:50:21,714 [INFO] __main__: === Transformer OCR System Starting ===
+2026-02-25 05:50:21,733 [INFO] src.processor: Initialising DocumentProcessor on device=cpu
+2026-02-25 05:50:21,733 [INFO] src.processor: Engine requested: doctr
+2026-02-25 05:50:21,734 [INFO] src.detector: Initialising OCR engine via EngineFactory...
+2026-02-25 05:50:43,139 [INFO] src.models: Loading DocTR OCR predictor (DBNet + CRNN/transformer)...
+2026-02-25 05:50:44,263 [INFO] root: Using downloaded & verified file: C:\Users\Admin\.cache\doctr\models\db_resnet50-79bd7d70.pt
+2026-02-25 05:50:45,239 [INFO] root: Using downloaded & verified file: C:\Users\Admin\.cache\doctr\models\parseq-56125471.pt
+2026-02-25 05:50:45,371 [INFO] src.detector: Active engine: DocTROCREngine
+2026-02-25 05:50:45,372 [INFO] src.processor: DocumentProcessor ready
+2026-02-25 05:50:45,374 [INFO] __main__: Processing PDF: scanned_example_1.pdf
+2026-02-25 05:50:46,099 [INFO] src.processor: Converted 1 pages at 300 dpi
+2026-02-25 05:51:26,193 [INFO] __main__: Found 112 text regions — saved to results
+2026-02-25 05:51:26,193 [INFO] __main__: === Done ===
+2026-02-25 05:54:50,707 [INFO] __main__: === Transformer OCR System Starting ===
+2026-02-25 05:54:50,723 [INFO] src.processor: Initialising DocumentProcessor on device=cpu
+2026-02-25 05:54:50,725 [INFO] src.processor: Engine requested: surya
+2026-02-25 05:54:50,725 [INFO] src.detector: Initialising OCR engine via EngineFactory...
+2026-02-25 05:55:23,725 [WARNING] src.models: Surya unavailable: surya-ocr could not be fully loaded (known broken RecognitionPredictor in 0.17.x).
+Options:
+  1. Use DocTR:       python main.py <input> --engine doctr
+  2. Downgrade surya: pip install surya-ocr==0.6.2
+  3. Upgrade surya:   pip install --upgrade surya-ocr
+
+2026-02-25 05:57:12,958 [INFO] __main__: === Transformer OCR System Starting ===
+2026-02-25 05:57:12,965 [INFO] src.processor: Initialising DocumentProcessor on device=cpu
+2026-02-25 05:57:12,965 [INFO] src.processor: Engine requested: surya
+2026-02-25 05:57:12,965 [INFO] src.detector: Initialising OCR engine via EngineFactory...
+2026-02-25 05:57:55,779 [WARNING] src.models: Surya unavailable: surya-ocr could not be fully loaded (known broken RecognitionPredictor in 0.17.x).
+Options:
+  1. Use DocTR:       python main.py <input> --engine doctr
+  2. Downgrade surya: pip install surya-ocr==0.6.2
+  3. Upgrade surya:   pip install --upgrade surya-ocr
+
+2026-02-25 05:59:07,029 [INFO] __main__: === Transformer OCR System Starting ===
+2026-02-25 05:59:07,049 [INFO] src.processor: Initialising DocumentProcessor on device=cpu
+2026-02-25 05:59:07,049 [INFO] src.processor: Engine requested: surya
+2026-02-25 05:59:07,049 [INFO] src.detector: Initialising OCR engine via EngineFactory...
+2026-02-25 05:59:34,764 [WARNING] src.models: Surya unavailable: surya-ocr could not be fully loaded (known broken RecognitionPredictor in 0.17.x).
+Options:
+  1. Use DocTR:       python main.py <input> --engine doctr
+  2. Downgrade surya: pip install surya-ocr==0.6.2
+  3. Upgrade surya:   pip install --upgrade surya-ocr
+
+2026-02-25 06:06:47,859 [INFO] __main__: === Transformer OCR System Starting ===
+2026-02-25 06:06:47,872 [INFO] src.processor: Initialising DocumentProcessor on device=cpu
+2026-02-25 06:06:47,872 [INFO] src.processor: Engine requested: surya
+2026-02-25 06:06:47,872 [INFO] src.detector: Initialising OCR engine via EngineFactory...
+2026-02-25 06:07:14,350 [WARNING] src.models: Surya unavailable: All surya strategies failed. Use: python main.py <input> --engine doctr
+2026-02-25 06:10:05,093 [INFO] __main__: === Transformer OCR System Starting ===
+2026-02-25 06:10:05,117 [INFO] src.processor: Initialising DocumentProcessor on device=cpu
+2026-02-25 06:10:05,118 [INFO] src.processor: Engine requested: doctr
+2026-02-25 06:10:05,118 [INFO] src.detector: Initialising OCR engine via EngineFactory...
+2026-02-25 06:10:23,940 [INFO] src.models: Loading DocTR (DBNet + PARSeq)...
+2026-02-25 06:10:25,609 [INFO] root: Using downloaded & verified file: C:\Users\Admin\.cache\doctr\models\db_resnet50-79bd7d70.pt
+2026-02-25 06:10:26,903 [INFO] root: Using downloaded & verified file: C:\Users\Admin\.cache\doctr\models\parseq-56125471.pt
+2026-02-25 06:10:27,140 [INFO] src.models: DocTR loaded
+2026-02-25 06:10:27,140 [INFO] src.detector: Active engine: DocTROCREngine
+2026-02-25 06:10:27,142 [INFO] src.processor: DocumentProcessor ready
+2026-02-25 06:10:27,142 [INFO] __main__: Processing PDF: subbarao_bank_statement.pdf
+2026-02-25 06:10:28,866 [INFO] src.processor: Converted 1 pages at 300 dpi
+2026-02-25 06:11:01,872 [INFO] __main__: Found 146 text regions — saved to results
+2026-02-25 06:11:01,872 [INFO] __main__: === Done ===
+2026-02-25 06:19:24,303 [INFO] __main__: === Transformer OCR System Starting ===
+2026-02-25 06:19:24,322 [INFO] src.processor: Initialising DocumentProcessor on device=cpu
+2026-02-25 06:19:24,324 [INFO] src.processor: Engine requested: doctr
+2026-02-25 06:19:24,325 [INFO] src.detector: Initialising OCR engine via EngineFactory...
+2026-02-25 06:19:35,404 [INFO] src.models: Loading DocTR (DBNet + PARSeq)...
+2026-02-25 06:19:36,701 [INFO] root: Using downloaded & verified file: C:\Users\Admin\.cache\doctr\models\db_resnet50-79bd7d70.pt
+2026-02-25 06:19:37,628 [INFO] root: Using downloaded & verified file: C:\Users\Admin\.cache\doctr\models\parseq-56125471.pt
+2026-02-25 06:19:37,836 [INFO] src.models: DocTR loaded
+2026-02-25 06:19:37,836 [INFO] src.detector: Active engine: DocTROCREngine
+2026-02-25 06:19:37,840 [INFO] src.processor: DocumentProcessor ready
+2026-02-25 06:19:37,840 [INFO] __main__: Processing PDF: Aadhaar 1.pdf
+2026-02-25 06:19:50,098 [INFO] src.processor: Converted 2 pages at 300 dpi
+2026-02-25 06:20:47,545 [INFO] __main__: Found 61 text regions — saved to results
+2026-02-25 06:20:47,545 [INFO] __main__: === Done ===
+2026-02-25 06:21:49,995 [INFO] __main__: === Transformer OCR System Starting ===
+2026-02-25 06:21:50,011 [INFO] src.processor: Initialising DocumentProcessor on device=cpu
+2026-02-25 06:21:50,011 [INFO] src.processor: Engine requested: doctr
+2026-02-25 06:21:50,011 [INFO] src.detector: Initialising OCR engine via EngineFactory...
+2026-02-25 06:22:02,694 [INFO] src.models: Loading DocTR (DBNet + PARSeq)...
+2026-02-25 06:22:04,032 [INFO] root: Using downloaded & verified file: C:\Users\Admin\.cache\doctr\models\db_resnet50-79bd7d70.pt
+2026-02-25 06:22:05,002 [INFO] root: Using downloaded & verified file: C:\Users\Admin\.cache\doctr\models\parseq-56125471.pt
+2026-02-25 06:22:05,235 [INFO] src.models: DocTR loaded
+2026-02-25 06:22:05,235 [INFO] src.detector: Active engine: DocTROCREngine
+2026-02-25 06:22:05,239 [INFO] src.processor: DocumentProcessor ready
+2026-02-25 06:22:05,241 [INFO] __main__: Processing PDF: dev-example.pdf
+2026-02-25 06:22:10,411 [INFO] src.processor: Converted 6 pages at 300 dpi
+2026-02-25 06:23:16,869 [INFO] __main__: Found 95 text regions — saved to results
+2026-02-25 06:23:16,869 [INFO] __main__: === Done ===
+2026-02-25 06:24:15,994 [INFO] __main__: === Transformer OCR System Starting ===
+2026-02-25 06:24:16,007 [INFO] src.processor: Initialising DocumentProcessor on device=cpu
+2026-02-25 06:24:16,007 [INFO] src.processor: Engine requested: doctr
+2026-02-25 06:24:16,007 [INFO] src.detector: Initialising OCR engine via EngineFactory...
+2026-02-25 06:24:30,135 [INFO] src.models: Loading DocTR (DBNet + PARSeq)...
+2026-02-25 06:24:31,510 [INFO] root: Using downloaded & verified file: C:\Users\Admin\.cache\doctr\models\db_resnet50-79bd7d70.pt
+2026-02-25 06:24:32,432 [INFO] root: Using downloaded & verified file: C:\Users\Admin\.cache\doctr\models\parseq-56125471.pt
+2026-02-25 06:24:32,659 [INFO] src.models: DocTR loaded
+2026-02-25 06:24:32,661 [INFO] src.detector: Active engine: DocTROCREngine
+2026-02-25 06:24:32,662 [INFO] src.processor: DocumentProcessor ready
+2026-02-25 06:24:32,664 [INFO] __main__: Processing PDF: Sbizhub_C2219080509040.pdf
+2026-02-25 06:24:34,522 [INFO] src.processor: Converted 2 pages at 300 dpi
+2026-02-25 06:24:57,139 [INFO] __main__: Found 81 text regions — saved to results
+2026-02-25 06:24:57,143 [INFO] __main__: === Done ===
+2026-02-25 10:13:01,136 [INFO] __main__: === Transformer OCR System Starting ===
+2026-02-25 10:13:01,186 [INFO] src.processor: Initialising DocumentProcessor on device=cpu
+2026-02-25 10:13:01,186 [INFO] src.processor: Engine requested: auto
+2026-02-25 10:13:01,186 [INFO] src.detector: Initialising OCR engine via EngineFactory...
+2026-02-25 10:13:01,193 [WARNING] src.models: Surya unavailable: All surya strategies failed. Use: python main.py <input> --engine doctr
+2026-02-25 10:13:01,195 [ERROR] src.models: DocTR load failed: No module named 'doctr'
+2026-02-25 10:13:01,195 [WARNING] src.models: DocTR unavailable: No module named 'doctr'
+2026-02-25 10:13:01,196 [ERROR] src.models: TrOCR+detector unavailable: No module named 'doctr'
+2026-02-25 10:13:53,248 [INFO] __main__: === Transformer OCR System Starting ===
+2026-02-25 10:13:53,260 [INFO] src.processor: Initialising DocumentProcessor on device=cpu
+2026-02-25 10:13:53,260 [INFO] src.processor: Engine requested: auto
+2026-02-25 10:13:53,260 [INFO] src.detector: Initialising OCR engine via EngineFactory...
+2026-02-25 10:14:13,456 [WARNING] src.models: Surya unavailable: All surya strategies failed. Use: python main.py <input> --engine doctr
+2026-02-25 10:14:16,983 [INFO] src.models: Loading DocTR (DBNet + PARSeq)...
+2026-02-25 10:14:17,977 [INFO] root: Using downloaded & verified file: C:\Users\Admin\.cache\doctr\models\db_resnet50-79bd7d70.pt
+2026-02-25 10:14:18,894 [INFO] root: Using downloaded & verified file: C:\Users\Admin\.cache\doctr\models\parseq-56125471.pt
+2026-02-25 10:14:18,995 [INFO] src.models: DocTR loaded
+2026-02-25 10:14:18,995 [INFO] src.detector: Active engine: DocTROCREngine
+2026-02-25 10:14:18,997 [INFO] src.processor: DocumentProcessor ready
+2026-02-25 10:14:18,997 [INFO] __main__: Processing PDF: scanned_example_1.pdf
+2026-02-25 10:14:20,146 [INFO] src.processor: Converted 1 pages at 300 dpi
+2026-02-25 10:15:00,568 [INFO] __main__: Found 108 text regions — saved to results
+2026-02-25 10:15:00,569 [INFO] __main__: === Done ===
+2026-02-25 10:22:22,777 [INFO] __main__: === Transformer OCR System Starting ===
+2026-02-25 10:22:22,780 [INFO] src.processor: Initialising DocumentProcessor on device=cpu
+2026-02-25 10:22:22,780 [INFO] src.processor: Engine: doctr
+2026-02-25 10:22:22,787 [INFO] src.detector: Initialising OCR engine via EngineFactory...
+2026-02-25 10:22:30,848 [INFO] src.models: Loading DocTR (DBNet + PARSeq)...
+2026-02-25 10:22:31,397 [INFO] root: Using downloaded & verified file: C:\Users\Admin\.cache\doctr\models\db_resnet50-79bd7d70.pt
+2026-02-25 10:22:31,853 [INFO] root: Using downloaded & verified file: C:\Users\Admin\.cache\doctr\models\parseq-56125471.pt
+2026-02-25 10:22:31,971 [INFO] src.models: DocTR loaded
+2026-02-25 10:22:31,971 [INFO] src.detector: Active engine: DocTROCREngine
+2026-02-25 10:22:31,973 [INFO] src.processor: DocumentProcessor ready
+2026-02-25 10:22:31,973 [INFO] __main__: Processing PDF: scanned_example_1.pdf
+2026-02-25 10:22:32,637 [INFO] src.processor: Converted 1 pages at 300 dpi
+2026-02-25 10:23:08,967 [INFO] __main__: Found 135 text regions — saved to results
+2026-02-25 10:23:08,967 [INFO] __main__: === Done ===
+2026-02-25 10:25:10,553 [INFO] __main__: === Transformer OCR System Starting ===
+2026-02-25 10:25:10,557 [INFO] src.processor: Initialising DocumentProcessor on device=cpu
+2026-02-25 10:25:10,557 [INFO] src.processor: Engine: doctr
+2026-02-25 10:25:10,557 [INFO] src.detector: Initialising OCR engine via EngineFactory...
+2026-02-25 10:25:19,297 [INFO] src.models: Loading DocTR (DBNet + PARSeq)...
+2026-02-25 10:25:19,839 [INFO] root: Using downloaded & verified file: C:\Users\Admin\.cache\doctr\models\db_resnet50-79bd7d70.pt
+2026-02-25 10:25:20,330 [INFO] root: Using downloaded & verified file: C:\Users\Admin\.cache\doctr\models\parseq-56125471.pt
+2026-02-25 10:25:20,449 [INFO] src.models: DocTR loaded
+2026-02-25 10:25:20,449 [INFO] src.detector: Active engine: DocTROCREngine
+2026-02-25 10:25:20,449 [INFO] src.processor: DocumentProcessor ready
+2026-02-25 10:25:20,449 [INFO] __main__: Processing PDF: subbarao_bank_statement.pdf
+2026-02-25 10:25:21,067 [INFO] src.processor: Converted 1 pages at 300 dpi
+2026-02-25 10:25:41,197 [INFO] __main__: Found 129 text regions — saved to results
+2026-02-25 10:25:41,198 [INFO] __main__: === Done ===
+2026-02-25 10:28:56,238 [INFO] __main__: === Transformer OCR System Starting ===
+2026-02-25 10:28:56,251 [INFO] src.processor: Initialising DocumentProcessor on device=cpu
+2026-02-25 10:28:56,253 [INFO] src.processor: Engine: doctr
+2026-02-25 10:28:56,253 [INFO] src.detector: Initialising OCR engine via EngineFactory...
+2026-02-25 10:29:06,497 [INFO] src.models: Loading DocTR (DBNet + PARSeq)...
+2026-02-25 10:29:07,022 [INFO] root: Using downloaded & verified file: C:\Users\Admin\.cache\doctr\models\db_resnet50-79bd7d70.pt
+2026-02-25 10:29:07,481 [INFO] root: Using downloaded & verified file: C:\Users\Admin\.cache\doctr\models\parseq-56125471.pt
+2026-02-25 10:29:07,607 [INFO] src.models: DocTR loaded
+2026-02-25 10:29:07,608 [INFO] src.detector: Active engine: DocTROCREngine
+2026-02-25 10:29:07,609 [INFO] src.processor: DocumentProcessor ready
+2026-02-25 10:29:07,610 [INFO] __main__: Processing PDF: PublicWaterMassMailing.pdf
+2026-02-25 10:29:14,400 [INFO] src.processor: Converted 8 pages at 300 dpi
+2026-02-25 10:34:20,998 [INFO] __main__: Found 1056 text regions — saved to results
+2026-02-25 10:34:20,999 [INFO] __main__: === Done ===
+2026-02-25 10:54:27,586 [INFO] __main__: === Transformer OCR System Starting ===
+2026-02-25 10:54:27,593 [INFO] src.processor: Initialising DocumentProcessor on device=cpu
+2026-02-25 10:54:27,593 [INFO] src.processor: Engine: doctr
+2026-02-25 10:54:27,593 [INFO] src.detector: Initialising OCR engine via EngineFactory...
+2026-02-25 10:54:38,346 [INFO] src.models: Loading DocTR (DBNet + PARSeq)...
+2026-02-25 10:54:39,081 [INFO] root: Using downloaded & verified file: C:\Users\Admin\.cache\doctr\models\db_resnet50-79bd7d70.pt
+2026-02-25 10:54:39,850 [INFO] root: Using downloaded & verified file: C:\Users\Admin\.cache\doctr\models\parseq-56125471.pt
+2026-02-25 10:54:39,981 [INFO] src.models: DocTR loaded
+2026-02-25 10:54:39,981 [INFO] src.detector: Active engine: DocTROCREngine
+2026-02-25 10:54:39,988 [INFO] src.processor: DocumentProcessor ready
+2026-02-25 10:54:39,988 [INFO] __main__: Processing PDF: scanned_example_1.pdf
+2026-02-25 10:54:41,150 [INFO] src.processor: Converted 1 pages at 300 dpi
+2026-02-25 10:55:19,552 [INFO] __main__: Found 158 text regions — saved to results
+2026-02-25 10:55:19,556 [INFO] __main__: === Done ===
+2026-02-25 10:58:35,012 [INFO] __main__: === Transformer OCR System Starting ===
+2026-02-25 10:58:35,021 [INFO] src.processor: Initialising DocumentProcessor on device=cpu
+2026-02-25 10:58:35,021 [INFO] src.processor: Engine: doctr
+2026-02-25 10:58:35,021 [INFO] src.detector: Initialising OCR engine via EngineFactory...
+2026-02-25 10:58:40,587 [INFO] src.models: Loading DocTR (DBNet + PARSeq)...
+2026-02-25 10:58:41,175 [INFO] root: Using downloaded & verified file: C:\Users\Admin\.cache\doctr\models\db_resnet50-79bd7d70.pt
+2026-02-25 10:58:41,647 [INFO] root: Using downloaded & verified file: C:\Users\Admin\.cache\doctr\models\parseq-56125471.pt
+2026-02-25 10:58:41,784 [INFO] src.models: DocTR loaded
+2026-02-25 10:58:41,784 [INFO] src.detector: Active engine: DocTROCREngine
+2026-02-25 10:58:41,784 [INFO] src.processor: DocumentProcessor ready
+2026-02-25 10:58:41,784 [INFO] __main__: Processing PDF: dev-example.pdf
+2026-02-25 10:58:44,655 [INFO] src.processor: Converted 6 pages at 300 dpi
+2026-02-25 10:59:23,564 [INFO] __main__: Found 118 text regions — saved to results
+2026-02-25 10:59:23,564 [INFO] __main__: === Done ===
+2026-02-25 11:00:19,718 [INFO] __main__: === Transformer OCR System Starting ===
+2026-02-25 11:00:19,726 [INFO] src.processor: Initialising DocumentProcessor on device=cpu
+2026-02-25 11:00:19,728 [INFO] src.processor: Engine: doctr
+2026-02-25 11:00:19,728 [INFO] src.detector: Initialising OCR engine via EngineFactory...
+2026-02-25 11:00:25,200 [INFO] src.models: Loading DocTR (DBNet + PARSeq)...
+2026-02-25 11:00:25,751 [INFO] root: Using downloaded & verified file: C:\Users\Admin\.cache\doctr\models\db_resnet50-79bd7d70.pt
+2026-02-25 11:00:26,206 [INFO] root: Using downloaded & verified file: C:\Users\Admin\.cache\doctr\models\parseq-56125471.pt
+2026-02-25 11:00:26,318 [INFO] src.models: DocTR loaded
+2026-02-25 11:00:26,318 [INFO] src.detector: Active engine: DocTROCREngine
+2026-02-25 11:00:26,318 [INFO] src.processor: DocumentProcessor ready
+2026-02-25 11:00:26,318 [INFO] __main__: Processing PDF: sample-report.pdf
+2026-02-25 11:00:31,364 [INFO] src.processor: Converted 10 pages at 300 dpi
+2026-02-25 11:02:00,781 [INFO] __main__: Found 355 text regions — saved to results
+2026-02-25 11:02:00,781 [INFO] __main__: === Done ===
+2026-02-25 11:12:00,360 [INFO] __main__: === Transformer OCR System Starting ===
+2026-02-25 11:12:00,370 [INFO] src.processor: Initialising DocumentProcessor on device=cpu
+2026-02-25 11:12:00,370 [INFO] src.processor: Engine: doctr
+2026-02-25 11:12:00,370 [INFO] src.detector: Initialising OCR engine via EngineFactory...
+2026-02-25 11:12:11,806 [INFO] src.models: Loading DocTR (DBNet + PARSeq)...
+2026-02-25 11:12:12,480 [INFO] root: Using downloaded & verified file: C:\Users\Admin\.cache\doctr\models\db_resnet50-79bd7d70.pt
+2026-02-25 11:12:13,033 [INFO] root: Using downloaded & verified file: C:\Users\Admin\.cache\doctr\models\parseq-56125471.pt
+2026-02-25 11:12:13,170 [INFO] src.models: DocTR loaded
+2026-02-25 11:12:13,171 [INFO] src.detector: Active engine: DocTROCREngine
+2026-02-25 11:12:13,171 [INFO] src.processor: DocumentProcessor ready
+2026-02-25 11:12:13,171 [INFO] __main__: Processing PDF: scanned_example_1.pdf
+2026-02-25 11:12:14,132 [INFO] src.processor: Converted 1 pages at 150 dpi
+2026-02-25 11:12:54,788 [INFO] __main__: Found 6 text regions — saved to results
+2026-02-25 11:12:54,788 [INFO] __main__: === Done ===
+2026-02-25 11:13:33,101 [INFO] __main__: === Transformer OCR System Starting ===
+2026-02-25 11:13:33,112 [INFO] src.processor: Initialising DocumentProcessor on device=cpu
+2026-02-25 11:13:33,112 [INFO] src.processor: Engine: doctr
+2026-02-25 11:13:33,112 [INFO] src.detector: Initialising OCR engine via EngineFactory...
+2026-02-25 11:13:49,760 [INFO] src.models: Loading DocTR (DBNet + PARSeq)...
+2026-02-25 11:13:50,680 [INFO] root: Using downloaded & verified file: C:\Users\Admin\.cache\doctr\models\db_resnet50-79bd7d70.pt
+2026-02-25 11:13:51,666 [INFO] root: Using downloaded & verified file: C:\Users\Admin\.cache\doctr\models\parseq-56125471.pt
+2026-02-25 11:13:51,792 [INFO] src.models: DocTR loaded
+2026-02-25 11:13:51,792 [INFO] src.detector: Active engine: DocTROCREngine
+2026-02-25 11:13:51,792 [INFO] src.processor: DocumentProcessor ready
+2026-02-25 11:13:51,795 [INFO] __main__: Processing PDF: subbarao_bank_statement.pdf
+2026-02-25 11:13:53,565 [INFO] src.processor: Converted 1 pages at 300 dpi
+2026-02-25 11:14:17,360 [INFO] __main__: Found 25 text regions — saved to results
+2026-02-25 11:14:17,360 [INFO] __main__: === Done ===
+2026-02-25 11:14:58,766 [INFO] __main__: === Transformer OCR System Starting ===
+2026-02-25 11:14:58,782 [INFO] src.processor: Initialising DocumentProcessor on device=cpu
+2026-02-25 11:14:58,782 [INFO] src.processor: Engine: doctr
+2026-02-25 11:14:58,782 [INFO] src.detector: Initialising OCR engine via EngineFactory...
+2026-02-25 11:15:20,159 [INFO] src.models: Loading DocTR (DBNet + PARSeq)...
+2026-02-25 11:15:21,268 [INFO] root: Using downloaded & verified file: C:\Users\Admin\.cache\doctr\models\db_resnet50-79bd7d70.pt
+2026-02-25 11:15:22,035 [INFO] root: Using downloaded & verified file: C:\Users\Admin\.cache\doctr\models\parseq-56125471.pt
+2026-02-25 11:15:22,176 [INFO] src.models: DocTR loaded
+2026-02-25 11:15:22,178 [INFO] src.detector: Active engine: DocTROCREngine
+2026-02-25 11:15:22,180 [INFO] src.processor: DocumentProcessor ready
+2026-02-25 11:15:22,180 [INFO] __main__: Processing PDF: PublicWaterMassMailing.pdf
+2026-02-25 11:15:31,972 [INFO] src.processor: Converted 8 pages at 300 dpi
+2026-02-25 11:20:10,757 [INFO] __main__: Found 163 text regions — saved to results
+2026-02-25 11:20:10,757 [INFO] __main__: === Done ===
+2026-02-25 11:32:52,530 [INFO] __main__: === Transformer OCR System Starting ===
+2026-02-25 11:36:56,569 [INFO] __main__: === Transformer OCR System Starting ===
+2026-02-25 11:36:56,569 [INFO] __main__: Using config: src\config.yaml
+2026-02-25 11:38:20,117 [INFO] __main__: === Transformer OCR System Starting ===
+2026-02-25 11:38:20,117 [INFO] __main__: Using config: src\config.yaml
+2026-02-25 11:38:20,129 [INFO] __main__: Loading OCR models…
+2026-02-25 11:38:20,129 [INFO] src.processor: Initialising DocumentProcessor on device=cpu
+2026-02-25 11:38:20,129 [INFO] src.processor: Engine: doctr
+2026-02-25 11:38:20,129 [INFO] src.detector: Initialising OCR engine via EngineFactory...
+2026-02-25 11:38:40,450 [INFO] src.models: Loading DocTR (DBNet + PARSeq, bin_thresh=0.15, box_thresh=0.05)...
+2026-02-25 11:38:41,771 [INFO] root: Using downloaded & verified file: C:\Users\Admin\.cache\doctr\models\db_resnet50-79bd7d70.pt
+2026-02-25 11:38:42,630 [INFO] root: Using downloaded & verified file: C:\Users\Admin\.cache\doctr\models\parseq-56125471.pt
+2026-02-25 11:38:42,776 [WARNING] src.models: DocTR version doesn't accept bin_thresh in constructor — patching post-init
+2026-02-25 11:38:43,550 [INFO] root: Using downloaded & verified file: C:\Users\Admin\.cache\doctr\models\db_resnet50-79bd7d70.pt
+2026-02-25 11:38:44,160 [INFO] root: Using downloaded & verified file: C:\Users\Admin\.cache\doctr\models\parseq-56125471.pt
+2026-02-25 11:38:44,311 [INFO] src.models: Patched bin_thresh=0.15, box_thresh=0.05
+2026-02-25 11:38:44,311 [INFO] src.models: DocTR loaded (fallback path)
+2026-02-25 11:38:44,314 [INFO] src.detector: Active engine: DocTROCREngine
+2026-02-25 11:38:44,319 [INFO] src.processor: DocumentProcessor ready
+2026-02-25 11:38:44,321 [INFO] __main__: Models loaded — starting OCR
+2026-02-25 11:38:44,321 [INFO] __main__: Processing PDF: scanned_example_1.pdf
+2026-02-25 11:38:45,935 [INFO] src.processor: Converted 1 pages at 300 dpi
+2026-02-25 11:39:29,941 [INFO] __main__: Found 124 text region(s) — saved to results
+2026-02-25 11:39:29,941 [INFO] __main__: === Done ===
+2026-02-25 11:39:50,887 [INFO] __main__: === Transformer OCR System Starting ===
+2026-02-25 11:39:50,887 [INFO] __main__: Using config: src\config.yaml
+2026-02-25 11:39:50,895 [INFO] __main__: Loading OCR models…
+2026-02-25 11:39:50,897 [INFO] src.processor: Initialising DocumentProcessor on device=cpu
+2026-02-25 11:39:50,897 [INFO] src.processor: Engine: doctr
+2026-02-25 11:39:50,898 [INFO] src.detector: Initialising OCR engine via EngineFactory...
+2026-02-25 11:39:56,653 [INFO] src.models: Loading DocTR (DBNet + PARSeq, bin_thresh=0.15, box_thresh=0.05)...
+2026-02-25 11:39:57,443 [INFO] root: Using downloaded & verified file: C:\Users\Admin\.cache\doctr\models\db_resnet50-79bd7d70.pt
+2026-02-25 11:39:57,977 [INFO] root: Using downloaded & verified file: C:\Users\Admin\.cache\doctr\models\parseq-56125471.pt
+2026-02-25 11:39:58,107 [WARNING] src.models: DocTR version doesn't accept bin_thresh in constructor — patching post-init
+2026-02-25 11:39:58,769 [INFO] root: Using downloaded & verified file: C:\Users\Admin\.cache\doctr\models\db_resnet50-79bd7d70.pt
+2026-02-25 11:39:59,299 [INFO] root: Using downloaded & verified file: C:\Users\Admin\.cache\doctr\models\parseq-56125471.pt
+2026-02-25 11:39:59,433 [INFO] src.models: Patched bin_thresh=0.15, box_thresh=0.05
+2026-02-25 11:39:59,433 [INFO] src.models: DocTR loaded (fallback path)
+2026-02-25 11:39:59,439 [INFO] src.detector: Active engine: DocTROCREngine
+2026-02-25 11:39:59,444 [INFO] src.processor: DocumentProcessor ready
+2026-02-25 11:39:59,445 [INFO] __main__: Models loaded — starting OCR
+2026-02-25 11:39:59,445 [INFO] __main__: Processing PDF: subbarao_bank_statement.pdf
+2026-02-25 11:40:00,237 [INFO] src.processor: Converted 1 pages at 300 dpi
+2026-02-25 11:40:23,064 [INFO] __main__: Found 103 text region(s) — saved to results
+2026-02-25 11:40:23,067 [INFO] __main__: === Done ===
+2026-02-25 11:40:40,867 [INFO] __main__: === Transformer OCR System Starting ===
+2026-02-25 11:40:40,867 [INFO] __main__: Using config: src\config.yaml
+2026-02-25 11:40:40,881 [INFO] __main__: Loading OCR models…
+2026-02-25 11:40:40,882 [INFO] src.processor: Initialising DocumentProcessor on device=cpu
+2026-02-25 11:40:40,882 [INFO] src.processor: Engine: doctr
+2026-02-25 11:40:40,882 [INFO] src.detector: Initialising OCR engine via EngineFactory...
+2026-02-25 11:40:47,122 [INFO] src.models: Loading DocTR (DBNet + PARSeq, bin_thresh=0.15, box_thresh=0.05)...
+2026-02-25 11:40:47,797 [INFO] root: Using downloaded & verified file: C:\Users\Admin\.cache\doctr\models\db_resnet50-79bd7d70.pt
+2026-02-25 11:40:48,313 [INFO] root: Using downloaded & verified file: C:\Users\Admin\.cache\doctr\models\parseq-56125471.pt
+2026-02-25 11:40:48,447 [WARNING] src.models: DocTR version doesn't accept bin_thresh in constructor — patching post-init
+2026-02-25 11:40:49,163 [INFO] root: Using downloaded & verified file: C:\Users\Admin\.cache\doctr\models\db_resnet50-79bd7d70.pt
+2026-02-25 11:40:49,659 [INFO] root: Using downloaded & verified file: C:\Users\Admin\.cache\doctr\models\parseq-56125471.pt
+2026-02-25 11:40:49,789 [INFO] src.models: Patched bin_thresh=0.15, box_thresh=0.05
+2026-02-25 11:40:49,789 [INFO] src.models: DocTR loaded (fallback path)
+2026-02-25 11:40:49,794 [INFO] src.detector: Active engine: DocTROCREngine
+2026-02-25 11:40:49,796 [INFO] src.processor: DocumentProcessor ready
+2026-02-25 11:40:49,797 [INFO] __main__: Models loaded — starting OCR
+2026-02-25 11:40:49,798 [INFO] __main__: Processing PDF: sample-report.pdf
+2026-02-25 11:40:56,279 [INFO] src.processor: Converted 10 pages at 300 dpi
+2026-02-25 11:42:32,043 [INFO] __main__: Found 222 text region(s) — saved to results
+2026-02-25 11:42:32,043 [INFO] __main__: === Done ===
+2026-02-25 11:42:54,876 [INFO] __main__: === Transformer OCR System Starting ===
+2026-02-25 11:42:54,878 [INFO] __main__: Using config: src\config.yaml
+2026-02-25 11:42:54,887 [INFO] __main__: Loading OCR models…
+2026-02-25 11:42:54,887 [INFO] src.processor: Initialising DocumentProcessor on device=cpu
+2026-02-25 11:42:54,887 [INFO] src.processor: Engine: doctr
+2026-02-25 11:42:54,887 [INFO] src.detector: Initialising OCR engine via EngineFactory...
+2026-02-25 11:43:00,777 [INFO] src.models: Loading DocTR (DBNet + PARSeq, bin_thresh=0.15, box_thresh=0.05)...
+2026-02-25 11:43:01,457 [INFO] root: Using downloaded & verified file: C:\Users\Admin\.cache\doctr\models\db_resnet50-79bd7d70.pt
+2026-02-25 11:43:01,967 [INFO] root: Using downloaded & verified file: C:\Users\Admin\.cache\doctr\models\parseq-56125471.pt
+2026-02-25 11:43:02,097 [WARNING] src.models: DocTR version doesn't accept bin_thresh in constructor — patching post-init
+2026-02-25 11:43:02,747 [INFO] root: Using downloaded & verified file: C:\Users\Admin\.cache\doctr\models\db_resnet50-79bd7d70.pt
+2026-02-25 11:43:03,250 [INFO] root: Using downloaded & verified file: C:\Users\Admin\.cache\doctr\models\parseq-56125471.pt
+2026-02-25 11:43:03,377 [INFO] src.models: Patched bin_thresh=0.15, box_thresh=0.05
+2026-02-25 11:43:03,382 [INFO] src.models: DocTR loaded (fallback path)
+2026-02-25 11:43:03,387 [INFO] src.detector: Active engine: DocTROCREngine
+2026-02-25 11:43:03,390 [INFO] src.processor: DocumentProcessor ready
+2026-02-25 11:43:03,391 [INFO] __main__: Models loaded — starting OCR
+2026-02-25 11:43:03,391 [INFO] __main__: Processing PDF: dev-example.pdf
+2026-02-25 11:43:06,718 [INFO] src.processor: Converted 6 pages at 300 dpi
+2026-02-25 11:43:54,077 [INFO] __main__: Found 97 text region(s) — saved to results
+2026-02-25 11:43:54,079 [INFO] __main__: === Done ===
+2026-02-25 11:44:29,847 [INFO] __main__: === Transformer OCR System Starting ===
+2026-02-25 11:44:29,850 [INFO] __main__: Using config: src\config.yaml
+2026-02-25 11:44:29,859 [INFO] __main__: Loading OCR models…
+2026-02-25 11:44:29,859 [INFO] src.processor: Initialising DocumentProcessor on device=cpu
+2026-02-25 11:44:29,859 [INFO] src.processor: Engine: doctr
+2026-02-25 11:44:29,859 [INFO] src.detector: Initialising OCR engine via EngineFactory...
+2026-02-25 11:44:36,397 [INFO] src.models: Loading DocTR (DBNet + PARSeq, bin_thresh=0.15, box_thresh=0.05)...
+2026-02-25 11:44:37,044 [INFO] root: Using downloaded & verified file: C:\Users\Admin\.cache\doctr\models\db_resnet50-79bd7d70.pt
+2026-02-25 11:44:37,549 [INFO] root: Using downloaded & verified file: C:\Users\Admin\.cache\doctr\models\parseq-56125471.pt
+2026-02-25 11:44:37,680 [WARNING] src.models: DocTR version doesn't accept bin_thresh in constructor — patching post-init
+2026-02-25 11:44:38,377 [INFO] root: Using downloaded & verified file: C:\Users\Admin\.cache\doctr\models\db_resnet50-79bd7d70.pt
+2026-02-25 11:44:38,896 [INFO] root: Using downloaded & verified file: C:\Users\Admin\.cache\doctr\models\parseq-56125471.pt
+2026-02-25 11:44:39,027 [INFO] src.models: Patched bin_thresh=0.15, box_thresh=0.05
+2026-02-25 11:44:39,027 [INFO] src.models: DocTR loaded (fallback path)
+2026-02-25 11:44:39,032 [INFO] src.detector: Active engine: DocTROCREngine
+2026-02-25 11:44:39,034 [INFO] src.processor: DocumentProcessor ready
+2026-02-25 11:44:39,034 [INFO] __main__: Models loaded — starting OCR
+2026-02-25 11:44:39,036 [INFO] __main__: Processing PDF: Sbizhub_C2219080509040.pdf
+2026-02-25 11:44:40,197 [INFO] src.processor: Converted 2 pages at 300 dpi
+2026-02-25 11:44:56,786 [INFO] __main__: Found 61 text region(s) — saved to results
+2026-02-25 11:44:56,787 [INFO] __main__: === Done ===
+2026-02-25 11:50:09,109 [INFO] __main__: === Transformer OCR System Starting ===
+2026-02-25 11:50:09,109 [INFO] __main__: Using config: src\config.yaml
+2026-02-25 11:50:09,116 [INFO] __main__: Loading OCR models…
+2026-02-25 11:50:09,116 [INFO] src.processor: Initialising DocumentProcessor on device=cpu
+2026-02-25 11:50:09,116 [INFO] src.processor: Engine: doctr
+2026-02-25 11:50:09,116 [INFO] src.detector: Initialising OCR engine via EngineFactory...
+2026-02-25 11:50:16,848 [INFO] src.models: Loading DocTR (DBNet + PARSeq, bin_thresh=0.15, box_thresh=0.05)...
+2026-02-25 11:50:17,591 [INFO] root: Using downloaded & verified file: C:\Users\Admin\.cache\doctr\models\db_resnet50-79bd7d70.pt
+2026-02-25 11:50:18,104 [INFO] root: Using downloaded & verified file: C:\Users\Admin\.cache\doctr\models\parseq-56125471.pt
+2026-02-25 11:50:18,243 [WARNING] src.models: DocTR version doesn't accept bin_thresh in constructor — patching post-init
+2026-02-25 11:50:18,947 [INFO] root: Using downloaded & verified file: C:\Users\Admin\.cache\doctr\models\db_resnet50-79bd7d70.pt
+2026-02-25 11:50:19,576 [INFO] root: Using downloaded & verified file: C:\Users\Admin\.cache\doctr\models\parseq-56125471.pt
+2026-02-25 11:50:19,729 [INFO] src.models: Patched bin_thresh=0.15, box_thresh=0.05
+2026-02-25 11:50:19,729 [INFO] src.models: DocTR loaded (fallback path)
+2026-02-25 11:50:19,735 [INFO] src.detector: Active engine: DocTROCREngine
+2026-02-25 11:50:19,738 [INFO] src.processor: DocumentProcessor ready
+2026-02-25 11:50:19,738 [INFO] __main__: Models loaded — starting OCR
+2026-02-25 11:50:19,738 [INFO] __main__: Found 8 PDF(s) and 0 image(s) in muthoot_docs
+2026-02-25 11:50:19,738 [INFO] __main__:   PDF: Aadhaar_Card (11) (1).pdf
+2026-02-25 11:50:20,988 [INFO] src.processor: Converted 1 pages at 300 dpi
+2026-02-25 11:50:32,145 [INFO] __main__:   PDF: Aadhar_Consent_Form.pdf
+2026-02-25 11:50:33,070 [INFO] src.processor: Converted 2 pages at 300 dpi
+2026-02-25 11:51:12,152 [INFO] __main__:   PDF: ASSET_DETAILS_.pdf
+2026-02-25 11:51:12,865 [INFO] src.processor: Converted 1 pages at 300 dpi
+2026-02-25 11:51:25,650 [INFO] __main__:   PDF: Cibil report 1.pdf
+2026-02-25 11:51:26,742 [INFO] src.processor: Converted 2 pages at 300 dpi
+2026-02-25 11:52:13,275 [INFO] __main__:   PDF: Disbursement report 5.pdf
+2026-02-25 11:52:14,532 [INFO] src.processor: Converted 5 pages at 300 dpi
+2026-02-25 11:53:13,737 [INFO] __main__:   PDF: Driving_licence (2).pdf
+2026-02-25 11:53:14,332 [INFO] src.processor: Converted 2 pages at 300 dpi
+2026-02-25 11:53:28,616 [INFO] __main__:   PDF: Form_60_Munni.pdf
+2026-02-25 11:53:29,442 [INFO] src.processor: Converted 2 pages at 300 dpi
+2026-02-25 11:54:22,854 [INFO] __main__:   PDF: ICICI_HOSPITAL_CASH.pdf
+2026-02-25 11:54:23,971 [INFO] src.processor: Converted 3 pages at 300 dpi
+2026-02-25 11:55:52,299 [INFO] __main__: Total: 1210 region(s) from 8 PDF(s) + 0 image(s)
+2026-02-25 11:55:52,299 [INFO] __main__: === Done ===
+2026-02-25 12:34:00,855 [INFO] __main__: === Transformer OCR System Starting ===
+2026-02-25 12:34:00,855 [INFO] __main__: Using config: src\config.yaml
+2026-02-25 12:34:00,906 [INFO] __main__: Document type: scanned | DPI: 300
+2026-02-25 12:34:00,906 [INFO] __main__: Pre-processing: deskew + denoise + CLAHE + upscale ENABLED
+2026-02-25 12:34:00,906 [INFO] __main__: Row reconstruction: ENABLED (tolerance=15px)
+2026-02-25 12:34:00,906 [INFO] __main__: Loading OCR models…
+2026-02-25 12:34:00,906 [INFO] src.processor: Initialising DocumentProcessor on device=cpu
+2026-02-25 12:34:00,906 [INFO] src.processor: Engine: doctr
+2026-02-25 12:34:00,906 [INFO] src.detector: Initialising OCR engine via EngineFactory...
+2026-02-25 12:34:10,067 [INFO] src.models: Loading DocTR (db_resnet50 + parseq, bin_thresh=0.15, box_thresh=0.05)...
+2026-02-25 12:34:10,740 [INFO] root: Using downloaded & verified file: C:\Users\Admin\.cache\doctr\models\db_resnet50-79bd7d70.pt
+2026-02-25 12:34:11,595 [INFO] root: Using downloaded & verified file: C:\Users\Admin\.cache\doctr\models\parseq-56125471.pt
+2026-02-25 12:34:11,745 [WARNING] src.models: DocTR version doesn't accept bin_thresh in constructor — patching post-init
+2026-02-25 12:34:12,317 [INFO] root: Using downloaded & verified file: C:\Users\Admin\.cache\doctr\models\db_resnet50-79bd7d70.pt
+2026-02-25 12:34:12,767 [INFO] root: Using downloaded & verified file: C:\Users\Admin\.cache\doctr\models\parseq-56125471.pt
+2026-02-25 12:34:12,870 [INFO] src.models: Patched bin_thresh=0.15, box_thresh=0.05
+2026-02-25 12:34:12,870 [INFO] src.models: DocTR loaded (fallback path)
+2026-02-25 12:34:12,875 [INFO] src.detector: Active engine: DocTROCREngine
+2026-02-25 12:34:12,876 [INFO] src.processor: DocumentProcessor ready
+2026-02-25 12:34:12,876 [INFO] __main__: Models loaded — starting OCR
+2026-02-25 12:34:12,876 [INFO] __main__: Processing PDF: scanned_example_1.pdf
+2026-02-25 12:34:13,865 [INFO] src.processor: Converted 1 pages at 300 dpi (doc_type=scanned)
+2026-02-25 12:34:45,940 [INFO] __main__: Applying pre-processing to PDF pages…
+2026-02-25 12:35:44,234 [INFO] __main__: Found 77 text region(s) — saved to results
+2026-02-25 12:35:44,235 [INFO] __main__: === Done ===
+2026-02-25 12:37:35,849 [INFO] __main__: === Transformer OCR System Starting ===
+2026-02-25 12:37:35,849 [INFO] __main__: Using config: src\config.yaml
+2026-02-25 12:37:35,909 [INFO] __main__: Document type: scanned | DPI: 300
+2026-02-25 12:37:35,909 [INFO] __main__: Pre-processing: deskew + denoise + CLAHE + upscale ENABLED
+2026-02-25 12:37:35,909 [INFO] __main__: Row reconstruction: ENABLED (tolerance=15px)
+2026-02-25 12:37:35,909 [INFO] __main__: Loading OCR models…
+2026-02-25 12:37:35,909 [INFO] src.processor: Initialising DocumentProcessor on device=cpu
+2026-02-25 12:37:35,909 [INFO] src.processor: Engine: doctr
+2026-02-25 12:37:35,909 [INFO] src.detector: Initialising OCR engine via EngineFactory...
+2026-02-25 12:37:46,317 [INFO] src.models: Loading DocTR (db_resnet50 + parseq, bin_thresh=0.15, box_thresh=0.05)...
+2026-02-25 12:37:46,965 [INFO] root: Using downloaded & verified file: C:\Users\Admin\.cache\doctr\models\db_resnet50-79bd7d70.pt
+2026-02-25 12:37:47,600 [INFO] root: Using downloaded & verified file: C:\Users\Admin\.cache\doctr\models\parseq-56125471.pt
+2026-02-25 12:37:47,707 [WARNING] src.models: DocTR version doesn't accept bin_thresh in constructor — patching post-init
+2026-02-25 12:37:48,293 [INFO] root: Using downloaded & verified file: C:\Users\Admin\.cache\doctr\models\db_resnet50-79bd7d70.pt
+2026-02-25 12:37:48,689 [INFO] root: Using downloaded & verified file: C:\Users\Admin\.cache\doctr\models\parseq-56125471.pt
+2026-02-25 12:37:48,785 [INFO] src.models: Patched bin_thresh=0.15, box_thresh=0.05
+2026-02-25 12:37:48,785 [INFO] src.models: DocTR loaded (fallback path)
+2026-02-25 12:37:48,790 [INFO] src.detector: Active engine: DocTROCREngine
+2026-02-25 12:37:48,790 [INFO] src.processor: DocumentProcessor ready
+2026-02-25 12:37:48,793 [INFO] __main__: Models loaded — starting OCR
+2026-02-25 12:37:48,793 [INFO] __main__: Processing PDF: subbarao_bank_statement.pdf
+2026-02-25 12:37:49,545 [INFO] src.processor: Converted 1 pages at 300 dpi (doc_type=scanned)
+2026-02-25 12:38:06,090 [INFO] __main__: Applying pre-processing to PDF pages…
+2026-02-25 12:38:45,275 [INFO] __main__: Found 66 text region(s) — saved to results
+2026-02-25 12:38:45,275 [INFO] __main__: === Done ===
+2026-02-25 12:48:38,455 [INFO] __main__: === Transformer OCR System Starting ===
+2026-02-25 12:48:38,455 [INFO] __main__: Using config: src\config.yaml
+2026-02-25 12:48:38,514 [INFO] __main__: Document type: scanned | DPI: 300
+2026-02-25 12:48:38,514 [INFO] __main__: Pre-processing: ENABLED (doc_type=scanned)
+2026-02-25 12:48:38,514 [INFO] __main__: Row reconstruction: ENABLED (y_tolerance=15px, max_x_gap=30%)
+2026-02-25 12:48:38,514 [INFO] __main__: Loading OCR models…
+2026-02-25 12:48:38,514 [INFO] src.processor: Initialising DocumentProcessor on device=cpu
+2026-02-25 12:48:38,514 [INFO] src.processor: Engine: doctr
+2026-02-25 12:48:38,514 [INFO] src.detector: Initialising OCR engine via EngineFactory...
+2026-02-25 12:48:44,223 [INFO] src.models: Loading DocTR (db_resnet50 + parseq, bin_thresh=0.15, box_thresh=0.05)...
+2026-02-25 12:48:44,753 [INFO] root: Using downloaded & verified file: C:\Users\Admin\.cache\doctr\models\db_resnet50-79bd7d70.pt
+2026-02-25 12:48:45,205 [INFO] root: Using downloaded & verified file: C:\Users\Admin\.cache\doctr\models\parseq-56125471.pt
+2026-02-25 12:48:45,311 [WARNING] src.models: DocTR version doesn't accept bin_thresh in constructor — patching post-init
+2026-02-25 12:48:45,837 [INFO] root: Using downloaded & verified file: C:\Users\Admin\.cache\doctr\models\db_resnet50-79bd7d70.pt
+2026-02-25 12:48:46,216 [INFO] root: Using downloaded & verified file: C:\Users\Admin\.cache\doctr\models\parseq-56125471.pt
+2026-02-25 12:48:46,321 [INFO] src.models: Patched bin_thresh=0.15, box_thresh=0.05
+2026-02-25 12:48:46,321 [INFO] src.models: DocTR loaded (fallback path)
+2026-02-25 12:48:46,323 [INFO] src.detector: Active engine: DocTROCREngine
+2026-02-25 12:48:46,325 [INFO] src.processor: DocumentProcessor ready
+2026-02-25 12:48:46,325 [INFO] __main__: Models loaded — starting OCR
+2026-02-25 12:48:46,325 [INFO] __main__: Processing PDF: scanned_example_1.pdf
+2026-02-25 12:48:46,915 [INFO] src.processor: Converted 1 pages at 300 dpi (doc_type=scanned)
+2026-02-25 12:49:21,238 [INFO] __main__:   Pre-processing 1 page(s)…
+2026-02-25 12:50:19,381 [INFO] __main__: Found 74 text region(s) — saved to results
+2026-02-25 12:50:19,382 [INFO] __main__: === Done ===
+2026-02-25 12:50:51,738 [INFO] __main__: === Transformer OCR System Starting ===
+2026-02-25 12:50:51,738 [INFO] __main__: Using config: src\config.yaml
+2026-02-25 12:50:51,793 [INFO] __main__: Document type: scanned | DPI: 300
+2026-02-25 12:50:51,793 [INFO] __main__: Pre-processing: ENABLED (doc_type=scanned)
+2026-02-25 12:50:51,793 [INFO] __main__: Row reconstruction: ENABLED (y_tolerance=15px, max_x_gap=30%)
+2026-02-25 12:50:51,793 [INFO] __main__: Loading OCR models…
+2026-02-25 12:50:51,793 [INFO] src.processor: Initialising DocumentProcessor on device=cpu
+2026-02-25 12:50:51,793 [INFO] src.processor: Engine: doctr
+2026-02-25 12:50:51,793 [INFO] src.detector: Initialising OCR engine via EngineFactory...
+2026-02-25 12:50:57,483 [INFO] src.models: Loading DocTR (db_resnet50 + parseq, bin_thresh=0.15, box_thresh=0.05)...
+2026-02-25 12:50:58,002 [INFO] root: Using downloaded & verified file: C:\Users\Admin\.cache\doctr\models\db_resnet50-79bd7d70.pt
+2026-02-25 12:50:58,418 [INFO] root: Using downloaded & verified file: C:\Users\Admin\.cache\doctr\models\parseq-56125471.pt
+2026-02-25 12:50:58,507 [WARNING] src.models: DocTR version doesn't accept bin_thresh in constructor — patching post-init
+2026-02-25 12:50:59,036 [INFO] root: Using downloaded & verified file: C:\Users\Admin\.cache\doctr\models\db_resnet50-79bd7d70.pt
+2026-02-25 12:50:59,439 [INFO] root: Using downloaded & verified file: C:\Users\Admin\.cache\doctr\models\parseq-56125471.pt
+2026-02-25 12:50:59,541 [INFO] src.models: Patched bin_thresh=0.15, box_thresh=0.05
+2026-02-25 12:50:59,541 [INFO] src.models: DocTR loaded (fallback path)
+2026-02-25 12:50:59,541 [INFO] src.detector: Active engine: DocTROCREngine
+2026-02-25 12:50:59,541 [INFO] src.processor: DocumentProcessor ready
+2026-02-25 12:50:59,541 [INFO] __main__: Models loaded — starting OCR
+2026-02-25 12:50:59,541 [INFO] __main__: Processing PDF: Sbizhub_C2219080509040.pdf
+2026-02-25 12:51:00,373 [INFO] src.processor: Converted 2 pages at 300 dpi (doc_type=scanned)
+2026-02-25 12:51:11,587 [INFO] __main__:   Pre-processing 2 page(s)…
+2026-02-25 12:52:05,495 [INFO] __main__: Found 52 text region(s) — saved to results
+2026-02-25 12:52:05,496 [INFO] __main__: === Done ===
+2026-02-25 12:53:00,762 [INFO] __main__: === Transformer OCR System Starting ===
+2026-02-25 12:53:00,762 [INFO] __main__: Using config: src\config.yaml
+2026-02-25 12:53:00,821 [INFO] __main__: Document type: scanned | DPI: 300
+2026-02-25 12:53:00,821 [INFO] __main__: Pre-processing: ENABLED (doc_type=scanned)
+2026-02-25 12:53:00,821 [INFO] __main__: Row reconstruction: ENABLED (y_tolerance=15px, max_x_gap=30%)
+2026-02-25 12:53:00,821 [INFO] __main__: Loading OCR models…
+2026-02-25 12:53:00,821 [INFO] src.processor: Initialising DocumentProcessor on device=cpu
+2026-02-25 12:53:00,821 [INFO] src.processor: Engine: doctr
+2026-02-25 12:53:00,821 [INFO] src.detector: Initialising OCR engine via EngineFactory...
+2026-02-25 12:53:06,469 [INFO] src.models: Loading DocTR (db_resnet50 + parseq, bin_thresh=0.15, box_thresh=0.05)...
+2026-02-25 12:53:06,971 [INFO] root: Using downloaded & verified file: C:\Users\Admin\.cache\doctr\models\db_resnet50-79bd7d70.pt
+2026-02-25 12:53:07,365 [INFO] root: Using downloaded & verified file: C:\Users\Admin\.cache\doctr\models\parseq-56125471.pt
+2026-02-25 12:53:07,469 [WARNING] src.models: DocTR version doesn't accept bin_thresh in constructor — patching post-init
+2026-02-25 12:53:07,980 [INFO] root: Using downloaded & verified file: C:\Users\Admin\.cache\doctr\models\db_resnet50-79bd7d70.pt
+2026-02-25 12:53:08,371 [INFO] root: Using downloaded & verified file: C:\Users\Admin\.cache\doctr\models\parseq-56125471.pt
+2026-02-25 12:53:08,470 [INFO] src.models: Patched bin_thresh=0.15, box_thresh=0.05
+2026-02-25 12:53:08,470 [INFO] src.models: DocTR loaded (fallback path)
+2026-02-25 12:53:08,470 [INFO] src.detector: Active engine: DocTROCREngine
+2026-02-25 12:53:08,486 [INFO] src.processor: DocumentProcessor ready
+2026-02-25 12:53:08,486 [INFO] __main__: Models loaded — starting OCR
+2026-02-25 12:53:08,486 [INFO] __main__: Processing PDF: Disbursement report 5.pdf
+2026-02-25 12:53:09,745 [INFO] src.processor: Converted 5 pages at 300 dpi (doc_type=scanned)
+2026-02-25 12:54:01,866 [INFO] __main__:   Pre-processing 5 page(s)…
+2026-02-25 12:56:37,481 [INFO] __main__: Found 174 text region(s) — saved to results
+2026-02-25 12:56:37,483 [INFO] __main__: === Done ===
+2026-02-25 13:04:12,711 [INFO] __main__: === Transformer OCR System Starting ===
+2026-02-25 13:04:12,712 [INFO] __main__: Using config: src\config.yaml
+2026-02-25 13:04:12,758 [INFO] __main__: Document type: scanned | DPI: 300
+2026-02-25 13:04:12,758 [INFO] __main__: Pre-processing: ENABLED (doc_type=scanned)
+2026-02-25 13:04:12,758 [INFO] __main__: Row reconstruction: ENABLED (y_tolerance=15px, max_x_gap=30%)
+2026-02-25 13:04:12,758 [INFO] __main__: Loading OCR models…
+2026-02-25 13:04:12,758 [INFO] src.processor: Initialising DocumentProcessor on device=cpu
+2026-02-25 13:04:12,758 [INFO] src.processor: Engine: doctr
+2026-02-25 13:04:12,758 [INFO] src.detector: Initialising OCR engine via EngineFactory...
+2026-02-25 13:04:21,962 [INFO] src.models: Loading DocTR (db_resnet50 + parseq, bin_thresh=0.15, box_thresh=0.05)...
+2026-02-25 13:04:22,814 [INFO] root: Using downloaded & verified file: C:\Users\Admin\.cache\doctr\models\db_resnet50-79bd7d70.pt
+2026-02-25 13:04:23,474 [INFO] root: Using downloaded & verified file: C:\Users\Admin\.cache\doctr\models\parseq-56125471.pt
+2026-02-25 13:04:23,698 [WARNING] src.models: DocTR version doesn't accept bin_thresh in constructor — patching post-init
+2026-02-25 13:04:24,561 [INFO] root: Using downloaded & verified file: C:\Users\Admin\.cache\doctr\models\db_resnet50-79bd7d70.pt
+2026-02-25 13:04:25,088 [INFO] root: Using downloaded & verified file: C:\Users\Admin\.cache\doctr\models\parseq-56125471.pt
+2026-02-25 13:04:25,228 [INFO] src.models: Patched bin_thresh=0.15, box_thresh=0.05
+2026-02-25 13:04:25,228 [INFO] src.models: DocTR loaded (fallback path)
+2026-02-25 13:04:25,232 [INFO] src.detector: Active engine: DocTROCREngine
+2026-02-25 13:04:25,234 [INFO] src.processor: DocumentProcessor ready
+2026-02-25 13:04:25,234 [INFO] __main__: Models loaded — starting OCR
+2026-02-25 13:04:25,236 [INFO] __main__: Found 8 PDF(s) and 0 image(s) in muthoot_docs
+2026-02-25 13:04:25,236 [INFO] __main__:   PDF: Aadhaar_Card (11) (1).pdf
+2026-02-25 13:04:26,185 [INFO] src.processor: Converted 1 pages at 300 dpi (doc_type=scanned)
+2026-02-25 13:04:35,134 [INFO] __main__:   Pre-processing 1 page(s)…
+2026-02-25 13:05:30,757 [INFO] __main__:   PDF: Aadhar_Consent_Form.pdf
+2026-02-25 13:05:31,448 [INFO] src.processor: Converted 2 pages at 300 dpi (doc_type=scanned)
+2026-02-25 13:05:58,064 [INFO] __main__:   Pre-processing 2 page(s)…
+2026-02-25 13:07:10,873 [INFO] __main__:   PDF: ASSET_DETAILS_.pdf
+2026-02-25 13:07:11,526 [INFO] src.processor: Converted 1 pages at 300 dpi (doc_type=scanned)
+2026-02-25 13:07:20,200 [INFO] __main__:   Pre-processing 1 page(s)…
+2026-02-25 13:07:53,228 [INFO] __main__:   PDF: Cibil report 1.pdf
+2026-02-25 13:07:54,428 [INFO] src.processor: Converted 2 pages at 300 dpi (doc_type=scanned)
+2026-02-25 13:08:38,653 [INFO] __main__:   Pre-processing 2 page(s)…
+2026-02-25 13:09:56,508 [INFO] __main__:   PDF: Disbursement report 5.pdf
+2026-02-25 13:09:57,592 [INFO] src.processor: Converted 5 pages at 300 dpi (doc_type=scanned)
+2026-02-25 13:10:54,451 [INFO] __main__:   Pre-processing 5 page(s)…
+2026-02-25 13:13:46,274 [INFO] __main__:   PDF: Driving_licence (2).pdf
+2026-02-25 13:13:47,028 [INFO] src.processor: Converted 2 pages at 300 dpi (doc_type=scanned)
+2026-02-25 13:14:02,736 [INFO] __main__:   Pre-processing 2 page(s)…
+2026-02-25 13:15:03,427 [INFO] __main__:   PDF: Form_60_Munni.pdf
+2026-02-25 13:15:04,473 [INFO] src.processor: Converted 2 pages at 300 dpi (doc_type=scanned)
+2026-02-25 13:15:57,315 [INFO] __main__:   Pre-processing 2 page(s)…
+2026-02-25 13:17:52,698 [INFO] __main__:   PDF: ICICI_HOSPITAL_CASH.pdf
+2026-02-25 13:17:53,998 [INFO] src.processor: Converted 3 pages at 300 dpi (doc_type=scanned)
+2026-02-25 13:19:50,296 [INFO] __main__:   Pre-processing 3 page(s)…
+2026-02-25 13:22:39,892 [INFO] __main__: Total: 720 region(s) from 8 PDF(s) + 0 image(s)
+2026-02-25 13:22:39,892 [INFO] __main__: === Done ===
