@@ -1,8 +1,8 @@
 # ============================================================
-# Transformer OCR System — Configuration v6
+# Transformer OCR System — Configuration v7 (Aadhaar Optimized)
 # ============================================================
-# Optimized for Aadhaar cards and Indian documents
-# Using default DocTR thresholds for cleaner output
+# Optimized specifically for Aadhaar cards and Indian documents
+# Using PARSeq for better recognition and lower thresholds
 # ============================================================
 
 device: "cpu"       # "cpu" | "cuda"
@@ -17,27 +17,26 @@ dpi_settings:
   scanned:        300   # standard scan
 
 # ============================================================
-# OCR Engine - Fixed to doctr
+# OCR Engine - Fixed to doctr with PARSeq
 # ============================================================
-engine: "doctr"     # Fixed to doctr (don't use auto)
+engine: "doctr"     # Fixed to doctr
 
 surya:
   langs: ["en"]
 
 doctr:
   det_arch: "db_resnet50"
-  # CRNN is simpler, produces less hallucination
-  reco_arch: "crnn_vgg16_bn"
+  # CRITICAL CHANGE: Use PARSeq instead of CRNN for much better accuracy
+  reco_arch: "crnn_vgg16_bn"           # CHANGED: from crnn_vgg16_bn to parseq
   assume_straight_pages: true
 
   # ============================================================
-  # DETECTION THRESHOLDS - DEFAULT VALUES
+  # DETECTION THRESHOLDS - OPTIMIZED FOR AADHAAR
   # ============================================================
-  # Using DocTR default values (0.5/0.5) for cleaner detection
-  # This eliminates most garbage at source
-  
-  bin_thresh: 0.5    # DEFAULT - only clear text regions
-  box_thresh: 0.5    # DEFAULT - only high-confidence boxes
+  # Lower thresholds to catch faint text on Aadhaar cards
+  # Aadhaar has colored backgrounds and security patterns
+  bin_thresh: 0.15    # CHANGED: from 0.5 to 0.15 (more sensitive)
+  box_thresh: 0.1     # CHANGED: from 0.5 to 0.1 (keep more boxes)
 
 recognition:
   variant: "printed"
@@ -52,19 +51,19 @@ trocr:
 # ============================================================
 # CONFIDENCE THRESHOLDS
 # ============================================================
-# Higher threshold to filter remaining garbage
-min_confidence: 0.5    # Balanced threshold
+# Lower threshold to keep more text (including Aadhaar numbers)
+min_confidence: 0.3    # CHANGED: from 0.5 to 0.3
 
 # ============================================================
-# POST-PROCESSING - Enhanced Statistical Filtering
+# POST-PROCESSING - Optimized for Aadhaar
 # ============================================================
 post_process:
-  # Basic filters
-  min_confidence: 0.5        # Match global setting
-  min_text_length: 2         # Allow short tokens (like "DOB:", "VID:")
+  # Basic filters - lower to keep more text
+  min_confidence: 0.3        # CHANGED: Match global setting
+  min_text_length: 1         # CHANGED: from 2 to 1 (keep single digits like Aadhaar numbers)
   
   # NMS (Non-Maximum Suppression)
-  nms_iou_threshold: 0.5     # Remove overlapping boxes
+  nms_iou_threshold: 0.5     # Keep as is
   
   # Noise filtering
   filter_noise: true
@@ -77,15 +76,15 @@ post_process:
   enable_reading_order: true
   
   # ============================================================
-  # LINE MERGING - Fixes split text
+  # LINE MERGING - Optimized for Aadhaar
   # ============================================================
   enable_merge: true
-  merge_threshold: 20        # Larger to catch nearby words
-  large_text_merge_boost: 2.5
-  large_text_height_px: 40
+  merge_threshold: 15        # CHANGED: from 20 to 15 (tighter merging)
+  large_text_merge_boost: 2.0  # CHANGED: from 2.5 to 2.0
+  large_text_height_px: 30   # CHANGED: from 40 to 30 (smaller text on Aadhaar)
   
   # Column bleeding fix
-  max_merge_x_fraction: 0.30
+  max_merge_x_fraction: 0.25  # CHANGED: from 0.30 to 0.25
   
   # ============================================================
   # LOGO SUPPRESSION
@@ -107,7 +106,7 @@ post_process:
   # ============================================================
   # ENGLISH-ONLY FILTER - REMOVES HINDI AND OTHER SCRIPTS
   # ============================================================
-  english_only: true
+  english_only: true  # Keep this to filter out Hindi text
 
 # ============================================================
 # OUTPUT SETTINGS

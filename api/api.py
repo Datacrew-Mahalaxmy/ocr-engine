@@ -9,7 +9,7 @@ import sys
 import logging
 from pathlib import Path
 from datetime import datetime
-from fastapi import FastAPI, UploadFile, File, HTTPException, Request
+from fastapi import FastAPI, UploadFile, File, HTTPException, Request, Form
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse
 import yaml
@@ -21,10 +21,9 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 import numpy as np
 from PIL import Image
 import shutil
+from .sbert_similarity import compare_json_files, get_comparator
 import tempfile
 from starlette.exceptions import HTTPException as StarletteHTTPException
-# At the top of api.py, after imports
-import os
 os.environ["DOCTR_CACHE_DIR"] = "/tmp"  # Use temp dir
 
 # Add src to path
@@ -381,12 +380,6 @@ async def upload_and_process(
                 }
 
         # ---------------- Response ---------------- #
-        # Note: In Vercel, we can't return file paths directly
-        # We need to either:
-        # 1. Read the files and return base64 (for small files)
-        # 2. Upload to cloud storage and return URLs
-        # 3. For now, we'll just return the text data
-        
         response = {
             "success": True,
             "session_id": session_id,
@@ -410,8 +403,99 @@ async def upload_and_process(
         # Clean up temp file
         if os.path.exists(tmp_path):
             os.unlink(tmp_path)
-        # Note: In a real implementation, you'd also want to clean up the temp_dir
-        # But for serverless, the environment will be destroyed after the function ends
+
+
+# -------------------------------------------------
+# NEW ENDPOINT: Compare Textract vs DocTR using SBERT
+# -------------------------------------------------
+@app.post("/compare-with-textract")
+async def compare_with_textract(
+    textract_json: UploadFile = File(..., description="Textract JSON file"),
+    doctr_json: UploadFile = File(..., description="DocTR JSON file"),
+    model_name: str = Form("all-MiniLM-L6-v2")
+):
+    """
+    Compare Textract JSON with DocTR JSON using Sentence-BERT
+    Returns dashboard metrics with semantic similarity scores
+    """
+    logger.info(f"📊 Comparing Textract vs DocTR with model: {model_name}")
+    logger.info(f"   Textract file: {textract_json.filename}")
+    logger.info(f"   DocTR file: {doctr_json.filename}")
+    
+    # Create temp directory
+    with tempfile.TemporaryDirectory() as temp_dir:
+        try:
+            # Save Textract JSON
+            textract_path = os.path.join(temp_dir, "textract.json")
+            with open(textract_path, "wb") as f:
+                shutil.copyfileobj(textract_json.file, f)
+            
+            # Save DocTR JSON
+            doctr_path = os.path.join(temp_dir, "doctr.json")
+            with open(doctr_path, "wb") as f:
+                shutil.copyfileobj(doctr_json.file, f)
+            
+            # Compare using SBERT
+            logger.info("🔍 Running SBERT comparison...")
+            results = compare_json_files(textract_path, doctr_path, model_name)
+            
+            # Format for dashboard (matching your image)
+            dashboard = {
+                "document": {
+                    "name": doctr_json.filename.replace('.json', '.pdf'),
+                    "reference": textract_json.filename,
+                    "engine": "DocTR (Live)"
+                },
+                "metrics": {
+                    "overall_accuracy": {
+                        "value": results['overall_accuracy'],
+                        "status": "PASS" if results['overall_accuracy'] >= 85 else "FAIL"
+                    },
+                    "semantic_similarity": {
+                        "value": results['semantic_similarity'],
+                        "display": f"{results['semantic_similarity']}%"
+                    },
+                    "word_error_rate": {
+                        "value": results['word_error_rate'],
+                        "display": f"{results['word_error_rate']}%"
+                    },
+                    "character_error_rate": {
+                        "value": results['character_error_rate'],
+                        "display": f"{results['character_error_rate']}%"
+                    },
+                    "processing_time": {
+                        "value": results['processing_time'],
+                        "display": results['processing_time_display']
+                    }
+                },
+                "detailed_comparison": [],
+                "stats": results['stats']
+            }
+            
+            # Format detailed comparison for display
+            for pair in results['aligned_pairs']:
+                if pair['doctr']:
+                    dashboard['detailed_comparison'].append({
+                        "textract": pair['textract']['text'],
+                        "doctr": pair['doctr']['text'],
+                        "similarity": pair['similarity_percent'],
+                        "match_status": "exact" if pair['similarity'] > 0.95 else 
+                                      "similar" if pair['similarity'] > 0.7 else "different"
+                    })
+                else:
+                    dashboard['detailed_comparison'].append({
+                        "textract": pair['textract']['text'],
+                        "doctr": "(missing)",
+                        "similarity": 0,
+                        "match_status": "missing"
+                    })
+            
+            logger.info(f"✅ Comparison complete. Accuracy: {results['overall_accuracy']}%")
+            return JSONResponse(content=dashboard)
+            
+        except Exception as e:
+            logger.error(f"Comparison failed: {e}", exc_info=True)
+            raise HTTPException(status_code=500, detail=str(e))
 
 
 # -------------------------------------------------
