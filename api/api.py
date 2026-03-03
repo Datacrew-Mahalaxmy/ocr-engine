@@ -245,9 +245,9 @@ async def upload_and_process(
 
             try:
                 # Convert PDF to images from temp file
-                images = convert_from_path(tmp_path, dpi=150)
+                images = convert_from_path(tmp_path, dpi=400)
                 page_count = len(images)
-                logger.info(f"   Converted {page_count} pages at 150 DPI")
+                logger.info(f"   Converted {page_count} pages at 400 DPI")
             except Exception as e:
                 raise HTTPException(
                     status_code=500,
