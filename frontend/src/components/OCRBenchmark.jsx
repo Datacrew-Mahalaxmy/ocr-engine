@@ -14,45 +14,38 @@ const OCRBenchmark = () => {
   const [error, setError] = useState(null);
   const [modelName, setModelName] = useState("all-MiniLM-L6-v2");
 
-  // Textract JSON dropzone
   const onTextractDrop = useCallback((acceptedFiles) => {
     if (acceptedFiles.length > 0) {
       setTextractFile(acceptedFiles[0]);
     }
   }, []);
 
-  const { getRootProps: getTextractRootProps, getInputProps: getTextractInputProps, isDragActive: isTextractDragActive } = useDropzone({
-    onDrop: onTextractDrop,
-    accept: {
-      'application/json': ['.json']
-    },
-    maxFiles: 1
-  });
-
-  // DocTR JSON dropzone
   const onDoctrDrop = useCallback((acceptedFiles) => {
     if (acceptedFiles.length > 0) {
       setDoctrFile(acceptedFiles[0]);
     }
   }, []);
 
+  const { getRootProps: getTextractRootProps, getInputProps: getTextractInputProps, isDragActive: isTextractDragActive } = useDropzone({
+    onDrop: onTextractDrop,
+    accept: { 'application/json': ['.json'] },
+    maxFiles: 1
+  });
+
   const { getRootProps: getDoctrRootProps, getInputProps: getDoctrInputProps, isDragActive: isDoctrDragActive } = useDropzone({
     onDrop: onDoctrDrop,
-    accept: {
-      'application/json': ['.json']
-    },
+    accept: { 'application/json': ['.json'] },
     maxFiles: 1
   });
 
   const handleCompare = async () => {
     if (!textractFile || !doctrFile) {
-      setError('Please upload both Textract and DocTR JSON files');
+      setError('Please upload both JSON files');
       return;
     }
 
     setProcessing(true);
     setError(null);
-    setResult(null);
 
     const formData = new FormData();
     formData.append('textract_json', textractFile);
@@ -61,209 +54,349 @@ const OCRBenchmark = () => {
 
     try {
       const response = await axios.post(`${API_BASE}/compare-with-textract`, formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
-        timeout: 120000, // 2 minutes
+        headers: { 'Content-Type': 'multipart/form-data' },
+        timeout: 120000,
       });
-
       setResult(response.data);
     } catch (err) {
-      console.error('Comparison error:', err);
       setError(err.response?.data?.detail || err.message || 'Comparison failed');
     } finally {
       setProcessing(false);
     }
   };
 
-  const getScoreColor = (score) => {
-    if (score >= 90) return '#28a745';
-    if (score >= 70) return '#ffc107';
-    return '#dc3545';
+  const removeFile = (type) => {
+    if (type === 'textract') setTextractFile(null);
+    if (type === 'doctr') setDoctrFile(null);
   };
 
-  const getMatchIcon = (status) => {
-    switch(status) {
-      case 'exact': return '✅';
-      case 'similar': return '🟡';
-      case 'different': return '❌';
-      case 'missing': return '⚠️';
-      default: return '•';
+  const formatFileSize = (bytes) => {
+    if (!bytes) return '';
+    const sizes = ['Bytes', 'KB', 'MB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(1024));
+    return `${(bytes / Math.pow(1024, i)).toFixed(1)} ${sizes[i]}`;
+  };
+
+  const getMetricClass = (value, type) => {
+    if (type === 'error') {
+      if (value <= 10) return '';
+      if (value <= 20) return 'warning';
+      return 'danger';
     }
+    if (value >= 80) return '';
+    if (value >= 60) return 'warning';
+    return 'danger';
   };
 
   return (
     <div className="ocr-benchmark">
       <header className="benchmark-header">
-        <h1>📊 OCR Benchmark Dashboard</h1>
+        <h1>
+          OCR Benchmark
+          <span>Dashboard</span>
+        </h1>
       </header>
 
-      <div className="upload-section">
+      {/* Upload Section */}
+      <div className="upload-grid">
+        {/* Textract Upload */}
         <div className="upload-card">
-          <h3>📄 Textract JSON (Reference)</h3>
-          <div 
-            {...getTextractRootProps()} 
+          <div className="upload-header">
+            <div className="upload-icon-wrapper">📄</div>
+            <div>
+              <h3>Textract JSON</h3>
+              <p>Reference document</p>
+            </div>
+          </div>
+          <div
+            {...getTextractRootProps()}
             className={`dropzone ${isTextractDragActive ? 'active' : ''} ${textractFile ? 'has-file' : ''}`}
           >
             <input {...getTextractInputProps()} />
             {textractFile ? (
-              <div className="file-info">
-                <span className="file-icon">📄</span>
-                <span className="file-name">{textractFile.name}</span>
+              <div className="file-preview">
+                <div className="file-icon">📄</div>
+                <div className="file-details">
+                  <div className="file-name">{textractFile.name}</div>
+                  <div className="file-size">{formatFileSize(textractFile.size)}</div>
+                </div>
+                <button 
+                  className="remove-file"
+                  onClick={(e) => { e.stopPropagation(); removeFile('textract'); }}
+                >
+                  ✕
+                </button>
               </div>
             ) : (
               <div className="dropzone-content">
-                <span className="upload-icon">📤</span>
-                <p>Drop Textract JSON here</p>
-                <p className="small">or click to browse</p>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M12 16v-8M8 12l4-4 4 4" />
+                  <path d="M20 16v4H4v-4" />
+                </svg>
+                <p>Drop your Textract JSON here</p>
+                <span className="small">or click to browse</span>
               </div>
             )}
           </div>
         </div>
 
+        {/* DocTR Upload */}
         <div className="upload-card">
-          <h3>🤖 DocTR JSON (Candidate)</h3>
-          <div 
-            {...getDoctrRootProps()} 
+          <div className="upload-header">
+            <div className="upload-icon-wrapper">🤖</div>
+            <div>
+              <h3>DocTR JSON</h3>
+              <p>Candidate document</p>
+            </div>
+          </div>
+          <div
+            {...getDoctrRootProps()}
             className={`dropzone ${isDoctrDragActive ? 'active' : ''} ${doctrFile ? 'has-file' : ''}`}
           >
             <input {...getDoctrInputProps()} />
             {doctrFile ? (
-              <div className="file-info">
-                <span className="file-icon">🤖</span>
-                <span className="file-name">{doctrFile.name}</span>
+              <div className="file-preview">
+                <div className="file-icon">🤖</div>
+                <div className="file-details">
+                  <div className="file-name">{doctrFile.name}</div>
+                  <div className="file-size">{formatFileSize(doctrFile.size)}</div>
+                </div>
+                <button 
+                  className="remove-file"
+                  onClick={(e) => { e.stopPropagation(); removeFile('doctr'); }}
+                >
+                  ✕
+                </button>
               </div>
             ) : (
               <div className="dropzone-content">
-                <span className="upload-icon">📤</span>
-                <p>Drop DocTR JSON here</p>
-                <p className="small">or click to browse</p>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M12 16v-8M8 12l4-4 4 4" />
+                  <path d="M20 16v4H4v-4" />
+                </svg>
+                <p>Drop your DocTR JSON here</p>
+                <span className="small">or click to browse</span>
               </div>
             )}
           </div>
         </div>
       </div>
 
-      <div className="model-selector">
-        <label>Sentence-BERT Model:</label>
-        <select value={modelName} onChange={(e) => setModelName(e.target.value)} disabled={processing}>
-          <option value="all-MiniLM-L6-v2">all-MiniLM-L6-v2 (Fast)</option>
-          <option value="all-mpnet-base-v2">all-mpnet-base-v2 (Accurate)</option>
-          <option value="multi-qa-mpnet-base-dot-v1">multi-qa-mpnet-base (Best)</option>
-        </select>
+      {/* Model Selector */}
+      <div className="model-section">
+        <div className="model-label">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <circle cx="12" cy="12" r="10" />
+            <path d="M12 18v-4M12 8v4" />
+          </svg>
+          Sentence-BERT Model
+        </div>
+        <div className="model-select-wrapper">
+          <select value={modelName} onChange={(e) => setModelName(e.target.value)} disabled={processing}>
+            <option value="all-MiniLM-L6-v2">⚡ all-MiniLM-L6-v2 (Fastest)</option>
+            <option value="all-mpnet-base-v2">🎯 all-mpnet-base-v2 (Balanced)</option>
+            <option value="multi-qa-mpnet-base-dot-v1">🚀 multi-qa-mpnet-base (Most Accurate)</option>
+          </select>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <polyline points="6 9 12 15 18 9" />
+          </svg>
+        </div>
       </div>
 
-      <button 
-        className="compare-btn"
-        onClick={handleCompare}
-        disabled={!textractFile || !doctrFile || processing}
-      >
-        {processing ? '⏳ Computing Similarity...' : '🔍 Compare with SBERT'}
+      {/* Compare Button */}
+      <button className="compare-btn" onClick={handleCompare} disabled={!textractFile || !doctrFile || processing}>
+        {processing ? (
+          <>
+            <svg className="loading-spinner" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <circle cx="12" cy="12" r="10" />
+              <path d="M12 6v2M12 12v2M12 18v2" />
+            </svg>
+            Computing Similarity...
+          </>
+        ) : (
+          <>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+            </svg>
+            Compare Documents
+          </>
+        )}
       </button>
 
+      {/* Error Message */}
       {error && (
         <div className="error-message">
-          ❌ {error}
-          <button onClick={() => setError(null)}>Clear</button>
+          <div className="error-content">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <circle cx="12" cy="12" r="10" />
+              <line x1="12" y1="8" x2="12" y2="12" />
+              <circle cx="12" cy="16" r="1" fill="currentColor" />
+            </svg>
+            {error}
+          </div>
+          <button className="error-close" onClick={() => setError(null)}>Dismiss</button>
         </div>
       )}
 
+      {/* Results Dashboard */}
       {result && (
         <div className="dashboard">
           {/* Document Info */}
           <div className="doc-info">
-            <span className="doc-badge">📄 {result.document.name || 'Document'}</span>
-            <span className="doc-badge">📊 Reference: {result.document.reference}</span>
-            <span className="doc-badge">🤖 Engine: {result.document.engine}</span>
-          </div>
-
-          {/* Overall Accuracy */}
-          <div className="overall-accuracy" style={{ backgroundColor: getScoreColor(result.metrics.overall_accuracy.value) }}>
-            <div className="accuracy-label">Overall Accuracy</div>
-            <div className="accuracy-value">{result.metrics.overall_accuracy.value}%</div>
-            <div className="accuracy-status">[{result.metrics.overall_accuracy.status}]</div>
-          </div>
-
-          {/* Metrics Grid */}
-          <div className="metrics-grid">
-            <div className="metric-card">
-              <div className="metric-title">Semantic Similarity</div>
-              <div className="metric-value" style={{ color: getScoreColor(result.metrics.semantic_similarity.value) }}>
-                {result.metrics.semantic_similarity.display}
+            <div className="doc-badges">
+              <div className="badge">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M4 4h16v16H4z" />
+                  <line x1="8" y1="8" x2="16" y2="8" />
+                  <line x1="8" y1="12" x2="16" y2="12" />
+                  <line x1="8" y1="16" x2="12" y2="16" />
+                </svg>
+                {result.document?.name || "document.pdf"}
+              </div>
+              <div className="badge">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <circle cx="12" cy="12" r="10" />
+                  <path d="M12 8v4l3 3" />
+                </svg>
+                {result.metrics?.processing_time?.display || "0ms"}
               </div>
             </div>
-            <div className="metric-card">
-              <div className="metric-title">Word Error Rate</div>
-              <div className="metric-value" style={{ color: getScoreColor(100 - result.metrics.word_error_rate.value) }}>
-                {result.metrics.word_error_rate.display}
-              </div>
-            </div>
-            <div className="metric-card">
-              <div className="metric-title">Character Error Rate</div>
-              <div className="metric-value" style={{ color: getScoreColor(100 - result.metrics.character_error_rate.value) }}>
-                {result.metrics.character_error_rate.display}
-              </div>
-            </div>
-            <div className="metric-card">
-              <div className="metric-title">Processing Time</div>
-              <div className="metric-value">{result.metrics.processing_time.display}</div>
+            <div className="badge">
+              Model: {modelName}
             </div>
           </div>
 
-          {/* Detailed Comparison */}
-          <div className="detailed-comparison">
-            <h3>📋 Detailed Comparison</h3>
-            
-            <div className="comparison-header">
-              <div className="header-textract">Textract (Reference)</div>
-              <div className="header-similarity">Similarity</div>
-              <div className="header-doctr">DocTR (Candidate)</div>
+          {/* Stats Row */}
+          <div className="stats-row">
+            {/* Overall Accuracy Card */}
+            <div className="accuracy-card">
+              <div className="accuracy-header">
+                <span>Overall Accuracy</span>
+                <span className="status-badge">{result.metrics?.overall_accuracy?.status || 'N/A'}</span>
+              </div>
+              <div className="accuracy-value">
+                <div className="accuracy-number">{result.metrics?.overall_accuracy?.value || 0}%</div>
+                <div className="accuracy-label">Semantic Similarity</div>
+              </div>
+              <div className="accuracy-footer">
+                <span>Reference: Textract</span>
+                <span>vs DocTR</span>
+              </div>
             </div>
 
-            <div className="comparison-rows">
-              {result.detailed_comparison.map((item, idx) => (
-                <div key={idx} className={`comparison-row ${item.match_status}`}>
-                  <div className="row-textract">
-                    <span className="match-icon">{getMatchIcon(item.match_status)}</span>
-                    {item.textract}
+            {/* Metrics Grid */}
+            <div className="metrics-grid">
+              <div className={`metric-item ${getMetricClass(result.metrics?.semantic_similarity?.value)}`}>
+                <div className="metric-icon">🎯</div>
+                <div className="metric-content">
+                  <h4>Semantic Similarity</h4>
+                  <div className="metric-main">
+                    <span className="value">{result.metrics?.semantic_similarity?.value || 0}</span>
+                    <span className="unit">%</span>
                   </div>
-                  <div className="row-similarity">
-                    <div className="similarity-bar-container">
-                      <div 
-                        className="similarity-bar" 
-                        style={{ 
-                          width: `${item.similarity}%`,
-                          backgroundColor: getScoreColor(item.similarity)
-                        }}
-                      ></div>
-                      <span className="similarity-text">{item.similarity}%</span>
-                    </div>
+                  <div className="metric-progress">
+                    <div className="progress-bar" style={{ width: `${result.metrics?.semantic_similarity?.value || 0}%` }} />
                   </div>
-                  <div className="row-doctr">{item.doctr}</div>
                 </div>
-              ))}
+              </div>
+
+              <div className={`metric-item ${getMetricClass(result.metrics?.word_error_rate?.value, 'error')}`}>
+                <div className="metric-icon">📝</div>
+                <div className="metric-content">
+                  <h4>Word Error Rate</h4>
+                  <div className="metric-main">
+                    <span className="value">{result.metrics?.word_error_rate?.value || 0}</span>
+                    <span className="unit">%</span>
+                  </div>
+                  <div className="metric-progress">
+                    <div className="progress-bar" style={{ width: `${result.metrics?.word_error_rate?.value || 0}%` }} />
+                  </div>
+                </div>
+              </div>
+
+              <div className={`metric-item ${getMetricClass(result.metrics?.character_error_rate?.value, 'error')}`}>
+                <div className="metric-icon">🔤</div>
+                <div className="metric-content">
+                  <h4>Character Error Rate</h4>
+                  <div className="metric-main">
+                    <span className="value">{result.metrics?.character_error_rate?.value || 0}</span>
+                    <span className="unit">%</span>
+                  </div>
+                  <div className="metric-progress">
+                    <div className="progress-bar" style={{ width: `${result.metrics?.character_error_rate?.value || 0}%` }} />
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
 
-          {/* Stats Summary */}
-          <div className="stats-summary">
-            <div className="stat-item">
-              <span className="stat-label">Textract Blocks:</span>
-              <span className="stat-value">{result.stats.textract_blocks}</span>
+          {/* Detailed Comparison Table */}
+          {result.detailed_comparison && (
+            <div className="table-section">
+              <div className="table-header">
+                <h3>Detailed Comparison</h3>
+                <div className="table-stats">
+                  <div className="table-stat">
+                    <span className="dot exact" />
+                    <span>Exact Match</span>
+                  </div>
+                  <div className="table-stat">
+                    <span className="dot similar" />
+                    <span>Similar</span>
+                  </div>
+                  <div className="table-stat">
+                    <span className="dot different" />
+                    <span>Different</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="comparison-table">
+                <div className="table-row header">
+                  <div className="table-cell">Textract</div>
+                  <div className="table-cell">Similarity</div>
+                  <div className="table-cell">DocTR</div>
+                  <div className="table-cell">Status</div>
+                </div>
+                <div className="comparison-rows">
+                  {result.detailed_comparison.map((item, index) => {
+                    let status = 'different';
+                    let matchClass = '';
+                    let matchIndicator = '';
+                    
+                    if (item.similarity_score >= 95) {
+                      status = 'exact';
+                      matchClass = 'exact';
+                      matchIndicator = '✓';
+                    } else if (item.similarity_score >= 70) {
+                      status = 'similar';
+                      matchClass = 'similar';
+                      matchIndicator = '●';
+                    } else {
+                      status = 'different';
+                      matchClass = 'different';
+                      matchIndicator = '✕';
+                    }
+
+                    return (
+                      <div key={index} className={`table-row ${status}`}>
+                        <div className="table-cell">{item.textract_text || '—'}</div>
+                        <div className="table-cell">
+                          <div className="similarity-score">{item.similarity_score}%</div>
+                        </div>
+                        <div className="table-cell">{item.doctr_text || '—'}</div>
+                        <div className="table-cell">
+                          <div className={`match-indicator ${matchClass}`}>
+                            {matchIndicator}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
             </div>
-            <div className="stat-item">
-              <span className="stat-label">DocTR Blocks:</span>
-              <span className="stat-value">{result.stats.doctr_blocks}</span>
-            </div>
-            <div className="stat-item">
-              <span className="stat-label">Matched Pairs:</span>
-              <span className="stat-value">{result.stats.matched_pairs}</span>
-            </div>
-            <div className="stat-item">
-              <span className="stat-label">Unmatched:</span>
-              <span className="stat-value">{result.stats.unmatched_textract}</span>
-            </div>
-          </div>
+          )}
         </div>
       )}
     </div>

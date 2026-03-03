@@ -1,4 +1,4 @@
-// App.js (complete file with fixes)
+// App.js
 import React, { useState } from 'react';
 import './App.css';
 import FileUpload from './components/FileUpload';
@@ -7,30 +7,15 @@ import DocumentSelector from './components/DocumentSelector';
 import OCRBenchmark from './components/OCRBenchmark';
 import axios from 'axios';
 
-const API_BASE = "http://localhost:8000";  // Change this to your actual API URL
+const API_BASE = "http://localhost:8000";
 
 function App() {
-  const [activeTab, setActiveTab] = useState('identifier'); // 'identifier' or 'benchmark'
+  const [activeTab, setActiveTab] = useState('identifier');
   const [selectedDoc, setSelectedDoc] = useState('');
   const [file, setFile] = useState(null);
   const [processing, setProcessing] = useState(false);
   const [result, setResult] = useState(null);
   const [error, setError] = useState(null);
-  const [apiStatus, setApiStatus] = useState('checking');
-
-  React.useEffect(() => {
-    checkApiHealth();
-  }, []);
-
-  const checkApiHealth = async () => {
-    try {
-      await axios.get(`${API_BASE}/health`);
-      setApiStatus('connected');
-    } catch (err) {
-      console.error('Health check failed:', err);
-      setApiStatus('disconnected');
-    }
-  };
 
   const handleIdentify = async () => {
     if (!file || !selectedDoc) {
@@ -50,11 +35,10 @@ function App() {
         headers: {
           'Content-Type': 'multipart/form-data',
         },
-        timeout: 600000, // 10 minutes
+        timeout: 600000,
       });
 
       const data = response.data;
-      console.log("API Response:", data); // For debugging
       
       const actualType = data.classification?.raw_type || 'unknown';
       const confidence = data.classification?.confidence || 0;
@@ -73,12 +57,11 @@ function App() {
         extractedText: data.text_by_page || {},
         totalRegions: data.total_regions || 0,
         classification: data.classification || {},
-        rawResults: data, // Store the full response for download
-        filename: file?.name || 'document.pdf' // Add fallback filename
+        rawResults: data,
+        filename: file?.name || 'document.pdf'
       });
 
     } catch (err) {
-      console.error("Error:", err);
       setError(err.response?.data?.detail || err.message || 'Failed to process document');
     } finally {
       setProcessing(false);
@@ -93,11 +76,9 @@ function App() {
       .join(' ');
   };
 
-  // Function to download JSON - FIXED VERSION
   const downloadJSON = () => {
     if (!result) return;
     
-    // Create a safe filename - use a default if result.filename is undefined
     const baseFilename = result.filename || 'ocr_result';
     let safeFilename = 'ocr_result';
     
@@ -108,7 +89,6 @@ function App() {
       safeFilename = 'ocr_result';
     }
     
-    // Create a more complete JSON with all OCR data
     const downloadData = {
       metadata: {
         filename: result.filename || 'unknown',
@@ -121,7 +101,6 @@ function App() {
       },
       classification: result.classification || {},
       text_by_page: result.extractedText || {},
-      // Include detailed results if available from API
       detailed_results: result.rawResults?.detailed_results || []
     };
     
@@ -129,7 +108,6 @@ function App() {
     const blob = new Blob([jsonString], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     
-    // Create download link
     const link = document.createElement('a');
     link.href = url;
     link.download = `${safeFilename}_ocr_results.json`;
@@ -141,87 +119,143 @@ function App() {
 
   return (
     <div className="app">
+      {/* Stunning Header */}
       <header className="header">
-        <h1>📄 Document Intelligence Platform</h1>
-        <p>Identify → Compare → Analyze</p>
+        <div className="header-content">
+          <div className="header-left">
+            <h1>Document Intelligence Platform</h1>
+            <p>
+              <span></span>
+              
+            </p>
+          </div>
+          <div className="header-right">
+          </div>
+        </div>
       </header>
 
-      {/* Tab Navigation */}
-      <div className="tab-navigation">
+      {/* Navigation */}
+      <nav className="nav-bar">
         <button 
-          className={`tab-btn ${activeTab === 'identifier' ? 'active' : ''}`}
+          className={`nav-item ${activeTab === 'identifier' ? 'active' : ''}`}
           onClick={() => setActiveTab('identifier')}
         >
-          🔍 Document Identifier
+          <svg className="nav-icon" viewBox="0 0 24 24">
+            <path d="M4 4h16v16H4z" />
+            <line x1="8" y1="8" x2="16" y2="8" />
+            <line x1="8" y1="12" x2="16" y2="12" />
+            <line x1="8" y1="16" x2="12" y2="16" />
+          </svg>
+          Document Identifier
         </button>
         <button 
-          className={`tab-btn ${activeTab === 'benchmark' ? 'active' : ''}`}
+          className={`nav-item ${activeTab === 'benchmark' ? 'active' : ''}`}
           onClick={() => setActiveTab('benchmark')}
         >
-          📊 OCR Benchmark (SBERT)
+          <svg className="nav-icon" viewBox="0 0 24 24">
+            <path d="M21 12v4a2 2 0 01-2 2H5a2 2 0 01-2-2V6a2 2 0 012-2h7" />
+            <polyline points="15 3 21 3 21 9" />
+            <line x1="10" y1="14" x2="21" y2="3" />
+          </svg>
+          OCR Benchmark
         </button>
-      </div>
+      </nav>
 
       <div className="container">
-        {/* API Status Banner */}
-        {apiStatus === 'checking' && (
-          <div className="info-banner">Checking API connection...</div>
-        )}
-        {apiStatus === 'disconnected' && (
-          <div className="error-banner">
-            ⚠️ Cannot connect to API. Make sure API is running at {API_BASE}
-            <button onClick={checkApiHealth} className="retry-btn">Retry</button>
-          </div>
-        )}
-
         {/* Tab Content */}
         {activeTab === 'identifier' ? (
-          /* Document Identifier Tab */
-          <div className="main-content">
-            <div className="left-column">
-              <h2>📤 Upload Document</h2>
+          <div className="identifier-layout">
+            {/* Left Panel - Upload */}
+            <div className="left-panel">
+              <div className="panel-header">
+                <div className="panel-icon">📤</div>
+                <h2>Upload Document</h2>
+              </div>
               
-              <DocumentSelector 
-                selectedDoc={selectedDoc}
-                onSelect={setSelectedDoc}
-                disabled={processing || apiStatus !== 'connected'}
-              />
+              <div className="doc-selector">
+                <label>Document Type</label>
+                <DocumentSelector 
+                  selectedDoc={selectedDoc}
+                  onSelect={setSelectedDoc}
+                  disabled={processing}
+                />
+              </div>
 
-              <FileUpload 
-                onFileSelect={setFile}
-                disabled={processing || apiStatus !== 'connected'}
-              />
+              <div className="upload-area">
+                <label className="upload-label">Upload File</label>
+                <FileUpload 
+                  onFileSelect={setFile}
+                  disabled={processing}
+                />
+              </div>
 
               {file && (
-                <div className="file-info">
-                  <p><strong>File:</strong> {file.name}</p>
-                  <p><strong>Size:</strong> {(file.size / 1024).toFixed(1)} KB</p>
-                  <p><strong>Type:</strong> {file.type}</p>
+                <div className="file-preview">
+                  <div className="file-icon">📄</div>
+                  <div className="file-details">
+                    <div className="file-name">{file.name}</div>
+                    <div className="file-meta">
+                      <span>{(file.size / 1024).toFixed(1)} KB</span>
+                      <span>{file.type || 'document'}</span>
+                    </div>
+                  </div>
                 </div>
               )}
 
               <button 
                 className="identify-btn"
                 onClick={handleIdentify}
-                disabled={!file || !selectedDoc || processing || apiStatus !== 'connected'}
+                disabled={!file || !selectedDoc || processing}
               >
-                {processing ? '⏳ Processing...' : '🔍 Identify Document'}
+                {processing ? (
+                  <>
+                    <svg className="spinner" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <circle cx="12" cy="12" r="10" />
+                      <path d="M12 6v2M12 12v2M12 18v2" />
+                    </svg>
+                    Processing...
+                  </>
+                ) : (
+                  <>
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <circle cx="12" cy="12" r="10" />
+                      <path d="M12 8v8M8 12h8" />
+                    </svg>
+                    Identify Document
+                  </>
+                )}
               </button>
 
               {error && (
                 <div className="error-message">
-                  ❌ {error}
-                  <button onClick={() => setError(null)}>Clear</button>
+                  <span>❌ {error}</span>
+                  <button onClick={() => setError(null)}>✕</button>
                 </div>
               )}
             </div>
 
-            <div className="right-column">
-              <h2>✅ Result</h2>
+            {/* Right Panel - Results */}
+            <div className="right-panel">
+              <div className="result-header">
+                <h2>
+                  <span>📊</span>
+                  Analysis Results
+                </h2>
+                {result && (
+                  <button className="download-btn" onClick={downloadJSON}>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                      <polyline points="7 10 12 15 17 10" />
+                      <line x1="12" y1="15" x2="12" y2="3" />
+                    </svg>
+                    Download JSON
+                  </button>
+                )}
+              </div>
+
               <ResultDisplay 
                 result={result} 
                 processing={processing} 
-                onDownload={downloadJSON}  // Pass download function
               />
             </div>
           </div>
@@ -234,7 +268,11 @@ function App() {
       </div>
 
       <footer className="footer">
-        Document Intelligence Platform | Identify with Rules • Compare with SBERT
+        <span>⚡ Document Intelligence Platform v2.0</span>
+        <span style={{ margin: '0 16px' }}>•</span>
+        <span>Powered by Advanced AI</span>
+        <span style={{ margin: '0 16px' }}>•</span>
+        <span>Enterprise Grade Security</span>
       </footer>
     </div>
   );
