@@ -3,7 +3,7 @@ import React, { useEffect, useState } from 'react';
 
 const ResultDisplay = ({ result, processing, onDownload }) => {
   const [animatedConfidence, setAnimatedConfidence] = useState(0);
-  const [activeTab, setActiveTab] = useState('visual');
+  const [activeTab, setActiveTab] = useState('visual'); // 'visual' or 'text'
 
   useEffect(() => {
     if (result?.confidence) {
@@ -37,13 +37,13 @@ const ResultDisplay = ({ result, processing, onDownload }) => {
       <div className="creative-empty">
         <div className="empty-illustration">
           <svg width="200" height="200" viewBox="0 0 100 100">
-            <circle cx="50" cy="40" r="30" fill="#f0f9ff" stroke="#6366f1" strokeWidth="2" strokeDasharray="4 4"/>
-            <path d="M30 70 L50 50 L70 70" stroke="#6366f1" strokeWidth="3" fill="none" strokeLinecap="round"/>
+            <circle cx="50" cy="40" r="30" fill="#f0f9ff" stroke="#911467" strokeWidth="2" strokeDasharray="4 4"/>
+            <path d="M30 70 L50 50 L70 70" stroke="#911467" strokeWidth="3" fill="none" strokeLinecap="round"/>
             <rect x="40" y="75" width="20" height="15" fill="#e0e7ff" rx="4"/>
           </svg>
         </div>
         <h3>Ready for Analysis</h3>
-        <p>Upload a document to see intelligent results with rich visualizations</p>
+        <p>Upload a document to see intelligent results</p>
         <div className="empty-features">
           <span>📊 Confidence Metrics</span>
           <span>🎯 Type Classification</span>
@@ -54,24 +54,12 @@ const ResultDisplay = ({ result, processing, onDownload }) => {
   }
 
   const confidencePercentage = (result.confidence * 100).toFixed(1);
-  const confidenceColor = confidencePercentage >= 80 ? '#10b981' : confidencePercentage >= 50 ? '#f59e0b' : '#ef4444';
-  
-  // Word cloud data
   const allText = Object.values(result.extractedText || {}).join(' ');
-  const words = allText.split(/\s+/)
-    .filter(word => word.length > 3)
-    .reduce((acc, word) => {
-      acc[word] = (acc[word] || 0) + 1;
-      return acc;
-    }, {});
-  
-  const topWords = Object.entries(words)
-    .sort((a, b) => b[1] - a[1])
-    .slice(0, 20);
+  const wordCount = allText.split(/\s+/).filter(word => word.length > 0).length;
 
   return (
     <div className="creative-result">
-      {/* Tab Navigation for Result Views */}
+      {/* Result Tabs */}
       <div className="result-tabs">
         <button 
           className={`tab-btn ${activeTab === 'visual' ? 'active' : ''}`}
@@ -87,10 +75,10 @@ const ResultDisplay = ({ result, processing, onDownload }) => {
         </button>
       </div>
 
-      {activeTab === 'visual' ? (
-        /* Visual Dashboard Tab */
+      {/* Visual Dashboard Tab */}
+      {activeTab === 'visual' && (
         <div className="visual-dashboard">
-          {/* Header Status Card */}
+          {/* Status Hero Card */}
           <div className={`status-hero ${result.isMatch ? 'match' : 'mismatch'}`}>
             <div className="status-icon">
               {result.isMatch ? '✓' : '✕'}
@@ -101,12 +89,12 @@ const ResultDisplay = ({ result, processing, onDownload }) => {
             </div>
           </div>
 
-          {/* Main Metrics Grid */}
+          {/* Metrics Dashboard - 3 columns */}
           <div className="metrics-dashboard">
-            {/* Confidence Gauge */}
-            <div className="metric-card gauge-card">
-              <h4>Confidence Score</h4>
-              <div className="gauge-container">
+            {/* Confidence Gauge - Centered */}
+            <div className="gauge-card">
+              <h4 className="gauge-title">Confidence Score</h4>
+              <div className="gauge-chart">
                 <svg viewBox="0 0 120 120" className="gauge-svg">
                   <defs>
                     <linearGradient id="gaugeGradient" x1="0%" y1="0%" x2="100%" y2="0%">
@@ -137,8 +125,8 @@ const ResultDisplay = ({ result, processing, onDownload }) => {
               </div>
             </div>
 
-            {/* Type Comparison Card */}
-            <div className="metric-card type-card">
+            {/* Type Analysis Card */}
+            <div className="type-card">
               <h4>Document Type Analysis</h4>
               <div className="type-comparison">
                 <div className="type-item">
@@ -165,8 +153,8 @@ const ResultDisplay = ({ result, processing, onDownload }) => {
               </div>
             </div>
 
-            {/* Statistics Card */}
-            <div className="metric-card stats-card">
+            {/* Statistics Card - With all stats */}
+            <div className="stats-card">
               <h4>Document Statistics</h4>
               <div className="stats-list">
                 <div className="stat-row">
@@ -175,41 +163,16 @@ const ResultDisplay = ({ result, processing, onDownload }) => {
                 </div>
                 <div className="stat-row">
                   <span>📝 Words Extracted</span>
-                  <strong>{allText.split(/\s+/).length}</strong>
+                  <strong>{wordCount}</strong>
                 </div>
                 <div className="stat-row">
                   <span>🔤 Characters</span>
                   <strong>{allText.length}</strong>
                 </div>
-                <div className="stat-row">
-                  <span>📊 Classification Method</span>
-                  <strong>{result.classification?.method || 'N/A'}</strong>
-                </div>
+                
               </div>
             </div>
           </div>
-
-          {/* Word Cloud Visualization */}
-          {topWords.length > 0 && (
-            <div className="word-cloud-section">
-              <h4>📊 Key Terms Extracted</h4>
-              <div className="word-cloud">
-                {topWords.map(([word, count], index) => (
-                  <span
-                    key={index}
-                    className="cloud-word"
-                    style={{
-                      fontSize: `${Math.min(1 + count * 0.3, 2.5)}rem`,
-                      opacity: 0.6 + (count / topWords[0][1]) * 0.4,
-                      color: `hsl(${index * 18}, 70%, 50%)`
-                    }}
-                  >
-                    {word}
-                  </span>
-                ))}
-              </div>
-            </div>
-          )}
 
           {/* Action Buttons */}
           <div className="result-actions">
@@ -225,24 +188,32 @@ const ResultDisplay = ({ result, processing, onDownload }) => {
             )}
           </div>
         </div>
-      ) : (
-        /* Extracted Text Tab */
+      )}
+
+      {/* Extracted Text Tab */}
+      {activeTab === 'text' && (
         <div className="text-tab">
           <div className="text-header">
             <h3>📝 Extracted Text Content</h3>
-            <span className="text-stats">{allText.split(/\s+/).length} words • {allText.length} characters</span>
+            <span className="text-stats">{wordCount} words • {allText.length} characters</span>
           </div>
           
           <div className="text-content-wrapper">
-            {Object.entries(result.extractedText || {}).map(([page, text]) => (
-              <div key={page} className="page-card">
-                <div className="page-header">
-                  <span className="page-number">Page {page}</span>
-                  <span className="word-count">{text.split(/\s+/).length} words</span>
+            {Object.keys(result.extractedText || {}).length > 0 ? (
+              Object.entries(result.extractedText).map(([page, text]) => (
+                <div key={page} className="page-card">
+                  <div className="page-header">
+                    <span className="page-number">Page {page}</span>
+                    <span className="word-count">{text.split(/\s+/).filter(w => w.length > 0).length} words</span>
+                  </div>
+                  <pre className="ocr-text">{text}</pre>
                 </div>
-                <pre className="ocr-text">{text}</pre>
+              ))
+            ) : (
+              <div className="empty-text-message">
+                <p>No text extracted from this document</p>
               </div>
-            ))}
+            )}
           </div>
         </div>
       )}
