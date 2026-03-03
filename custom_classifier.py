@@ -1,6 +1,5 @@
 """
-custom_classifier.py - Document classifier with exactly your 30 document types
-No merging, only renaming where needed for consistency
+custom_classifier.py - Fixed version with debugging
 """
 
 import logging
@@ -14,12 +13,10 @@ logger = logging.getLogger(__name__)
 class BusinessDocumentClassifier:
     """
     Document classifier with exactly 30 document types
-    Based on your provided list - no merging
     """
     
     def __init__(self):
-        # ===== YOUR EXACT 30 DOCUMENTS (only renamed for consistency) =====
-        
+        # ===== YOUR EXACT 30 DOCUMENTS =====
         self.DOCUMENT_SIGNATURES = {
             
             # 1. AADHAAR CARD
@@ -433,16 +430,19 @@ class BusinessDocumentClassifier:
         }
         
         logger.info(f"✅ Classifier initialized with {len(self.DOCUMENT_SIGNATURES)} document types")
-        
+    
     def extract_text_features(self, results: List[Dict]) -> Dict:
-        """Extract text features from OCR results"""
+        """Extract text features from OCR results with debug info"""
         if not results:
+            logger.debug("No results to extract features from")
             return {}
         
         # Combine all text
         all_text = ' '.join([r.get('text', '') for r in results])
         all_text_original = ' '.join([r.get('text', '') for r in results])
         all_text_lower = all_text.lower()
+        
+        logger.debug(f"Extracted text sample: {all_text[:200]}...")
         
         # Get page count
         pages = set(r.get('page', 1) for r in results)
@@ -477,8 +477,8 @@ class BusinessDocumentClassifier:
             'total_regions': len(results),
         }
     
-    def calculate_keyword_score(self, text: str, keywords: list) -> Tuple[float, list]:
-        """Method 1: Keyword matching"""
+    def calculate_keyword_score(self, text: str, keywords: list, doc_type: str = None) -> Tuple[float, list]:
+        """Method 1: Keyword matching with debug"""
         text_lower = text.lower()
         score = 0.0
         matches = []
@@ -487,78 +487,50 @@ class BusinessDocumentClassifier:
             if keyword.lower() in text_lower:
                 score += 1.0
                 matches.append(keyword[:30])
+                if doc_type:
+                    logger.debug(f"  ✅ {doc_type} keyword match: '{keyword}'")
         
         return score, matches
     
-    def calculate_pattern_score(self, text: str, patterns: list) -> Tuple[float, list]:
-        """Method 2: Pattern matching (regex)"""
+    def calculate_pattern_score(self, text: str, patterns: list, doc_type: str = None) -> Tuple[float, list]:
+        """Method 2: Pattern matching with debug"""
         score = 0.0
         matches = []
         
         for pattern in patterns:
             if re.search(pattern, text, re.IGNORECASE):
-                score += 2.0  # Patterns are stronger indicators
+                score += 2.0
                 matches.append(f"pattern:{pattern[:20]}")
+                if doc_type:
+                    logger.debug(f"  ✅ {doc_type} pattern match: {pattern}")
         
         return score, matches
     
-    def calculate_layout_score(self, features: Dict, doc_type: str, config: dict) -> Tuple[float, list]:
-        """Method 3: Layout analysis"""
-        score = 0.0
-        reasons = []
-        
-        # Check table presence
-        if config.get('has_table') and features.get('has_table'):
-            score += 1.5
-            reasons.append("table layout matches")
-        
-        # Check form fields
-        if config.get('layout') == 'form' and features.get('has_fields'):
-            score += 1.0
-            reasons.append("form layout matches")
-        
-        # Check photo area
-        if config.get('has_photo') and features.get('has_photo_area'):
-            score += 1.0
-            reasons.append("photo area detected")
-        
-        # Check non-English for vernacular
-        if doc_type == 'vernacular' and features.get('has_non_english'):
-            score += 3.0
-            reasons.append("non-english text detected")
-        
-        return score, reasons
-    
-    def calculate_page_score(self, features: Dict, page_range: tuple) -> Tuple[float, list]:
-        """Method 4: Page count analysis"""
-        page_count = features.get('page_count', 1)
-        min_pages, max_pages = page_range
-        
-        if min_pages <= page_count <= max_pages:
-            return 1.0, ["page count matches"]
-        elif page_count < min_pages:
-            return 0.5, ["fewer pages than typical"]
-        else:
-            return 0.3, ["more pages than typical"]
-    
-    def calculate_required_score(self, text: str, required_terms: list) -> Tuple[float, list]:
-        """Method 5: Required terms validation"""
+    def calculate_required_score(self, text: str, required_terms: list, doc_type: str = None) -> Tuple[float, list]:
+        """Method 5: Required terms validation with debug"""
         text_lower = text.lower()
         score = 0.0
         matches = []
         
         for term in required_terms:
             if term.lower() in text_lower:
-                score += 2.0  # Required terms are important
+                score += 2.0
                 matches.append(f"REQUIRED:{term[:20]}")
+                if doc_type:
+                    logger.debug(f"  ✅ {doc_type} required term match: '{term}'")
         
         return score, matches
     
     def classify(self, results: List[Dict], image: Optional[Image.Image] = None) -> Dict:
         """
-        Classify document using all 5 methods
+        Classify document using all 5 methods with detailed debugging
         """
+        logger.info("=" * 60)
+        logger.info("🔍 Starting document classification")
+        logger.info("=" * 60)
+        
         if not results:
+            logger.warning("⚠️ No results to classify")
             return {
                 'document_type': 'unknown',
                 'raw_type': 'unknown',
@@ -571,50 +543,81 @@ class BusinessDocumentClassifier:
         text = features.get('all_text', '')
         text_original = features.get('all_text_original', '')
         
+        logger.info(f"📄 Total text regions: {features['total_regions']}")
+        logger.info(f"📄 Page count: {features['page_count']}")
+        logger.info(f"📝 Text sample: {text[:200]}...")
+        
         # Calculate scores using all 5 methods
         scores = {}
         all_reasons = []
         all_matches = {}
+        debug_scores = {}
         
         for doc_type, config in self.DOCUMENT_SIGNATURES.items():
+            logger.debug(f"\n--- Scoring {doc_type} ---")
             total_score = 0
             doc_matches = []
             doc_reasons = []
+            breakdown = {}
             
             # Method 1: Keywords
-            kw_score, kw_matches = self.calculate_keyword_score(text, config.get('keywords', []))
+            kw_score, kw_matches = self.calculate_keyword_score(text, config.get('keywords', []), doc_type)
             total_score += kw_score
             doc_matches.extend(kw_matches)
+            breakdown['keywords'] = kw_score
             
             # Method 2: Patterns
-            pattern_score, pattern_matches = self.calculate_pattern_score(text_original, config.get('patterns', []))
+            pattern_score, pattern_matches = self.calculate_pattern_score(text_original, config.get('patterns', []), doc_type)
             total_score += pattern_score
             doc_matches.extend(pattern_matches)
+            breakdown['patterns'] = pattern_score
             
-            # Method 3: Layout
-            layout_score, layout_reasons = self.calculate_layout_score(features, doc_type, config)
+            # Method 3: Layout (simplified for now)
+            layout_score = 0
+            if config.get('has_table') and features.get('has_table'):
+                layout_score += 1.5
+            if config.get('layout') == 'form' and features.get('has_fields'):
+                layout_score += 1.0
+            if config.get('has_photo') and features.get('has_photo_area'):
+                layout_score += 1.0
             total_score += layout_score
-            doc_reasons.extend(layout_reasons)
+            breakdown['layout'] = layout_score
             
             # Method 4: Page count
-            page_score, page_reasons = self.calculate_page_score(features, config.get('page_count_range', (1, 100)))
+            page_range = config.get('page_count_range', (1, 100))
+            if page_range[0] <= features['page_count'] <= page_range[1]:
+                page_score = 1.0
+                doc_reasons.append("page count matches")
+            elif features['page_count'] < page_range[0]:
+                page_score = 0.5
+            else:
+                page_score = 0.3
             total_score += page_score
-            doc_reasons.extend(page_reasons)
+            breakdown['page_count'] = page_score
             
             # Method 5: Required terms
-            req_score, req_matches = self.calculate_required_score(text, config.get('required', []))
+            req_score, req_matches = self.calculate_required_score(text, config.get('required', []), doc_type)
             total_score += req_score
             doc_matches.extend(req_matches)
+            breakdown['required'] = req_score
             
             # Apply document weight
-            total_score *= config.get('weight', 1.0)
+            weight = config.get('weight', 1.0)
+            weighted_score = total_score * weight
+            breakdown['weight'] = weight
+            breakdown['weighted_total'] = weighted_score
             
-            if total_score > 0:
-                scores[doc_type] = total_score
+            if weighted_score > 0:
+                scores[doc_type] = weighted_score
                 all_matches[doc_type] = doc_matches
                 all_reasons.extend([f"{doc_type}: {r}" for r in doc_reasons[:2]])
+                debug_scores[doc_type] = breakdown
+                
+                if weighted_score > 1:
+                    logger.debug(f"  → Score: {weighted_score:.2f} (raw: {total_score}, weight: {weight})")
         
         if not scores:
+            logger.warning("⚠️ No matching patterns found for any document type")
             return {
                 'document_type': 'unknown',
                 'raw_type': 'unknown',
@@ -628,8 +631,15 @@ class BusinessDocumentClassifier:
         
         # Get top candidates
         sorted_scores = sorted(scores.items(), key=lambda x: x[1], reverse=True)
-        top_candidates = []
         
+        logger.info("\n" + "=" * 60)
+        logger.info("📊 TOP SCORES:")
+        for doc_type, score in sorted_scores[:5]:
+            logger.info(f"  {doc_type}: {score:.2f}")
+            if doc_type in debug_scores:
+                logger.debug(f"    Breakdown: {debug_scores[doc_type]}")
+        
+        top_candidates = []
         for doc_type, score in sorted_scores[:5]:
             top_candidates.append({
                 'type': doc_type.replace('_', ' ').title(),
@@ -639,13 +649,26 @@ class BusinessDocumentClassifier:
         
         best_type, best_score = sorted_scores[0]
         
-        # Calculate confidence (normalized)
-        max_possible = 30.0  # Approximate maximum possible score
-        confidence = min(best_score / max_possible, 0.95)
+        # Calculate confidence - FIX THIS!
+        # Instead of using max_possible, use a relative score
+        # If best_score is > 5, it's a good match
+        if best_score >= 10:
+            confidence = 0.95
+        elif best_score >= 7:
+            confidence = 0.85
+        elif best_score >= 5:
+            confidence = 0.75
+        elif best_score >= 3:
+            confidence = 0.50
+        elif best_score >= 1:
+            confidence = 0.30
+        else:
+            confidence = 0.10
         
         # Build reasons
         reasons = [
             f"Top match: {best_type.replace('_', ' ').title()}",
+            f"Score: {best_score:.2f}",
             f"Matched {len(all_matches.get(best_type, []))} keywords/patterns"
         ]
         
@@ -655,10 +678,6 @@ class BusinessDocumentClassifier:
             reasons.append("Medium confidence match")
         else:
             reasons.append("Low confidence - verify manually")
-        
-        # Add unique reasons
-        unique_reasons = list(set([r for r in all_reasons if best_type in r]))[:3]
-        reasons.extend(unique_reasons)
         
         result = {
             'document_type': best_type.replace('_', ' ').title(),
@@ -679,6 +698,9 @@ class BusinessDocumentClassifier:
         # Add warning for low confidence
         if confidence < 0.4:
             result['warning'] = 'Low confidence - please verify manually'
+        
+        logger.info(f"\n✅ Classification result: {result['document_type']} (conf: {confidence})")
+        logger.info("=" * 60)
         
         return result
 
