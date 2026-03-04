@@ -19,7 +19,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 import numpy as np
 from PIL import Image
 import shutil
-from .sbert_similarity import compare_json_files, get_comparator
+from .sbert_similarity import compare_with_all_models, get_comparator, AVAILABLE_MODELS
 import tempfile
 import time
 import multiprocessing
@@ -431,21 +431,21 @@ async def upload_and_process(
 # -------------------------------------------------
 # COMPARE WITH TEXTRACT ENDPOINT - FIXED VERSION
 # -------------------------------------------------
+# -------------------------------------------------
+# COMPARE WITH TEXTRACT ENDPOINT - RUNS ALL 3 MODELS
+# -------------------------------------------------
 @app.post("/compare-with-textract")
 async def compare_with_textract(
     textract_json: UploadFile = File(..., description="Textract JSON file"),
     doctr_json: UploadFile = File(..., description="DocTR JSON file"),
-    model_name: str = Form("all-MiniLM-L6-v2")
+    model_name: str = Form("all-MiniLM-L6-v2")  # This becomes the SELECTED model to display
 ):
     """
-    Compare Textract JSON with DocTR JSON using Sentence-BERT
-    Returns dashboard metrics with detailed comparison
+    Compare Textract JSON with DocTR JSON using ALL THREE Sentence-BERT models
+    Returns results from all models, frontend can switch between them
     """
-    logger.info(f"📊 Comparing Textract vs DocTR with model: {model_name}")
-    logger.info(f"   Textract file: {textract_json.filename}")
-    logger.info(f"   DocTR file: {doctr_json.filename}")
+    logger.info(f"📊 Comparing Textract vs DocTR with ALL models (selected display: {model_name})")
     
-    # Create temp directory
     with tempfile.TemporaryDirectory() as temp_dir:
         try:
             # Save Textract JSON
@@ -458,87 +458,82 @@ async def compare_with_textract(
             with open(doctr_path, "wb") as f:
                 shutil.copyfileobj(doctr_json.file, f)
             
-            # Compare using SBERT
-            logger.info("🔍 Running SBERT comparison...")
-            results = compare_json_files(textract_path, doctr_path, model_name)
+            # Compare using ALL models
+            logger.info("🔍 Running comparison with ALL SBERT models...")
+            all_results = compare_with_all_models(textract_path, doctr_path)
             
-            # Format for dashboard with proper detailed comparison
-            dashboard = {
+            # Format response with all models
+            response = {
                 "document": {
                     "name": doctr_json.filename.replace('.json', '.pdf'),
                     "reference": textract_json.filename,
                     "engine": "DocTR (Live)"
                 },
-                "metrics": {
-                    "overall_accuracy": {
-                        "value": results['overall_accuracy'],
-                        "status": "PASS" if results['overall_accuracy'] >= 85 else "FAIL"
-                    },
-                    "semantic_similarity": {
-                        "value": results['semantic_similarity'],
-                        "display": f"{results['semantic_similarity']}%"
-                    },
-                    "word_error_rate": {
-                        "value": results['word_error_rate'],
-                        "display": f"{results['word_error_rate']}%"
-                    },
-                    "character_error_rate": {
-                        "value": results['character_error_rate'],
-                        "display": f"{results['character_error_rate']}%"
-                    },
-                    "processing_time": {
-                        "value": results['processing_time'],
-                        "display": results['processing_time_display']
-                    }
-                },
-                "detailed_comparison": [],
-                "stats": results['stats']
+                "selected_model": model_name,  # Which model to display initially
+                "available_models": list(AVAILABLE_MODELS.keys()),
+                "model_info": AVAILABLE_MODELS,
+                "models": {},  # Will hold all three model results
+                "stats": all_results["stats"]
             }
             
-            # FIX: Populate detailed_comparison from aligned_pairs
-            if 'aligned_pairs' in results and results['aligned_pairs']:
-                logger.info(f"   Found {len(results['aligned_pairs'])} aligned pairs")
+            # Format each model's results for the frontend
+            for model_name_key, model_result in all_results["models"].items():
+                if "error" in model_result:
+                    response["models"][model_name_key] = {"error": model_result["error"]}
+                    continue
                 
-                for pair in results['aligned_pairs']:
-                    # Handle matched pairs (both textract and doctr exist)
-                    if pair.get('doctr') and pair.get('textract'):
-                        dashboard['detailed_comparison'].append({
-                            "textract_text": pair['textract']['text'],
-                            "doctr_text": pair['doctr']['text'],
-                            "similarity_score": pair['similarity_percent'],
-                            "match_status": "exact" if pair['similarity'] > 0.95 else 
-                                          "similar" if pair['similarity'] > 0.7 else "different"
-                        })
-                    # Handle missing DocTR matches (textract only)
-                    elif pair.get('textract') and not pair.get('doctr'):
-                        dashboard['detailed_comparison'].append({
-                            "textract_text": pair['textract']['text'],
-                            "doctr_text": "(missing)",
-                            "similarity_score": 0,
-                            "match_status": "missing"
-                        })
-                    # Handle missing Textract matches (doctr only) - optional
-                    elif pair.get('doctr') and not pair.get('textract'):
-                        dashboard['detailed_comparison'].append({
-                            "textract_text": "(missing)",
-                            "doctr_text": pair['doctr']['text'],
-                            "similarity_score": 0,
-                            "match_status": "missing"
-                        })
+                # Format dashboard for this model
+                dashboard = {
+                    "metrics": {
+                        "overall_accuracy": {
+                            "value": model_result['overall_accuracy'],
+                            "status": "PASS" if model_result['overall_accuracy'] >= 85 else "FAIL"
+                        },
+                        "semantic_similarity": {
+                            "value": model_result['semantic_similarity'],
+                            "display": f"{model_result['semantic_similarity']}%"
+                        },
+                        "word_error_rate": {
+                            "value": model_result['word_error_rate'],
+                            "display": f"{model_result['word_error_rate']}%"
+                        },
+                        "character_error_rate": {
+                            "value": model_result['character_error_rate'],
+                            "display": f"{model_result['character_error_rate']}%"
+                        },
+                        "processing_time": {
+                            "value": model_result['processing_time'],
+                            "display": model_result['processing_time_display']
+                        }
+                    },
+                    "detailed_comparison": [],
+                    "stats": model_result['stats']
+                }
+                
+                # Populate detailed comparison
+                if 'aligned_pairs' in model_result:
+                    for pair in model_result['aligned_pairs']:
+                        if pair.get('doctr') and pair.get('textract'):
+                            dashboard['detailed_comparison'].append({
+                                "textract_text": pair['textract']['text'],
+                                "doctr_text": pair['doctr']['text'],
+                                "similarity_score": pair['similarity_percent'],
+                                "match_status": "exact" if pair['similarity'] > 0.95 else 
+                                              "similar" if pair['similarity'] > 0.7 else "different"
+                            })
+                        elif pair.get('textract') and not pair.get('doctr'):
+                            dashboard['detailed_comparison'].append({
+                                "textract_text": pair['textract']['text'],
+                                "doctr_text": "(missing)",
+                                "similarity_score": 0,
+                                "match_status": "missing"
+                            })
+                
+                response["models"][model_name_key] = dashboard
             
-            # Add summary stats for debugging
-            dashboard['summary'] = {
-                'total_pairs': len(dashboard['detailed_comparison']),
-                'matched_pairs': results['stats'].get('matched_pairs', 0),
-                'unmatched_textract': results['stats'].get('unmatched_textract', 0),
-                'textract_blocks': results['stats'].get('textract_blocks', 0),
-                'doctr_blocks': results['stats'].get('doctr_blocks', 0)
-            }
+            logger.info(f"✅ All models comparison complete. Results available for: {list(response['models'].keys())}")
             
-            logger.info(f"✅ Comparison complete. Accuracy: {results['overall_accuracy']}%")
-            logger.info(f"   Detailed comparison has {len(dashboard['detailed_comparison'])} items")
-            
-            return JSONResponse(content=dashboard)
+            return JSONResponse(content=response)
             
         except Exception as e:
             logger.error(f"Comparison failed: {e}", exc_info=True)

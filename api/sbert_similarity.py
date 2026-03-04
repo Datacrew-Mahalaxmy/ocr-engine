@@ -9,8 +9,28 @@ from typing import List, Dict, Tuple, Optional
 from sentence_transformers import SentenceTransformer, util
 import torch
 import time
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 logger = logging.getLogger(__name__)
+
+# Available models
+AVAILABLE_MODELS = {
+    "all-MiniLM-L6-v2": {
+        "name": "all-MiniLM-L6-v2",
+        "description": "Fastest, good balance",
+        "dimensions": 384
+    },
+    "all-mpnet-base-v2": {
+        "name": "all-mpnet-base-v2", 
+        "description": "Balanced, better accuracy",
+        "dimensions": 768
+    },
+    "multi-qa-mpnet-base-dot-v1": {
+        "name": "multi-qa-mpnet-base-dot-v1",
+        "description": "Most accurate for semantic search", 
+        "dimensions": 768
+    }
+}
 
 class SBERTComparator:
     """
@@ -19,15 +39,17 @@ class SBERTComparator:
     
     def __init__(self, model_name: str = "all-MiniLM-L6-v2"):
         """
-        Initialize Sentence-BERT model
-        all-MiniLM-L6-v2: Fast, good balance of speed/accuracy
-        all-mpnet-base-v2: More accurate but slower
+        Initialize Sentence-BERT model with the given model name string
         """
-        logger.info(f"Loading SBERT model: {model_name}")
+        logger.info(f"📥 Loading SBERT model: {model_name}")
+        
+        self.model_name = model_name
         self.model = SentenceTransformer(model_name)
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
         self.model.to(self.device)
-        logger.info(f"✅ SBERT loaded on {self.device}")
+        
+        model_dim = self.model.get_sentence_embedding_dimension()
+        logger.info(f"✅ SBERT loaded on {self.device} | Model: {model_name} | Dimensions: {model_dim}")
     
     def extract_text_from_textract(self, textract_json) -> List[Dict]:
         """
@@ -85,11 +107,8 @@ class SBERTComparator:
             # Check if it has text_by_page
             if 'text_by_page' in doctr_json:
                 logger.info("DocTR JSON is in download format with text_by_page")
-                # Flatten the text_by_page into individual items? 
-                # For now, we'll create one block per page
                 for page_num, page_text in doctr_json.get('text_by_page', {}).items():
                     if page_text.strip():
-                        # Split by lines to create multiple blocks
                         lines = page_text.strip().split('\n')
                         for line in lines:
                             if line.strip():
@@ -267,21 +286,72 @@ class SBERTComparator:
         }
 
 
-# Global instance
-_comparator = None
+# Cache for loaded models
+_model_instances = {}
 
-def get_comparator(model_name: str = "all-MiniLM-L6-v2") -> SBERTComparator:
-    """Get or create global comparator instance"""
-    global _comparator
-    if _comparator is None:
-        _comparator = SBERTComparator(model_name)
-    return _comparator
+def get_comparator(model_name: str) -> SBERTComparator:
+    """Get or create comparator instance for specific model"""
+    if model_name not in _model_instances:
+        _model_instances[model_name] = SBERTComparator(model_name)
+    return _model_instances[model_name]
 
 
-def compare_json_files(textract_path: str, doctr_path: str, model_name: str = "all-MiniLM-L6-v2") -> Dict:
+# THIS IS THE FUNCTION YOU NEED - compare_with_all_models
+def compare_with_all_models(textract_path: str, doctr_path: str) -> Dict:
     """
-    Compare Textract JSON file with DocTR JSON file
+    Compare Textract and DocTR using ALL available models
+    Returns results from all models
     """
+    # Load JSON files once
+    with open(textract_path, 'r', encoding='utf-8') as f:
+        textract_data = json.load(f)
+    
+    with open(doctr_path, 'r', encoding='utf-8') as f:
+        doctr_data = json.load(f)
+    
+    # Extract text blocks once (same for all models)
+    # Use first model to extract (extraction doesn't depend on model)
+    temp_comparator = get_comparator("all-MiniLM-L6-v2")
+    textract_blocks = temp_comparator.extract_text_from_textract(textract_data)
+    doctr_blocks = temp_comparator.extract_text_from_doctr(doctr_data)
+    
+    # Run all models in parallel
+    all_results = {}
+    
+    with ThreadPoolExecutor(max_workers=len(AVAILABLE_MODELS)) as executor:
+        future_to_model = {}
+        
+        for model_name in AVAILABLE_MODELS.keys():
+            comparator = get_comparator(model_name)
+            future = executor.submit(
+                comparator.align_and_compare, 
+                textract_blocks, 
+                doctr_blocks
+            )
+            future_to_model[future] = model_name
+        
+        for future in as_completed(future_to_model):
+            model_name = future_to_model[future]
+            try:
+                result = future.result(timeout=300)
+                all_results[model_name] = result
+                logger.info(f"✅ Model {model_name} completed")
+            except Exception as e:
+                logger.error(f"❌ Model {model_name} failed: {e}")
+                all_results[model_name] = {"error": str(e)}
+    
+    return {
+        "models": all_results,
+        "model_info": AVAILABLE_MODELS,
+        "stats": {
+            "textract_blocks": len(textract_blocks),
+            "doctr_blocks": len(doctr_blocks)
+        }
+    }
+
+
+def compare_single_model(textract_path: str, doctr_path: str, model_name: str) -> Dict:
+    """Compare using a single specified model"""
     # Load JSON files
     with open(textract_path, 'r', encoding='utf-8') as f:
         textract_data = json.load(f)
@@ -289,7 +359,7 @@ def compare_json_files(textract_path: str, doctr_path: str, model_name: str = "a
     with open(doctr_path, 'r', encoding='utf-8') as f:
         doctr_data = json.load(f)
     
-    # Get comparator
+    # Get comparator for specified model
     comparator = get_comparator(model_name)
     
     # Extract text blocks
@@ -297,13 +367,10 @@ def compare_json_files(textract_path: str, doctr_path: str, model_name: str = "a
     doctr_blocks = comparator.extract_text_from_doctr(doctr_data)
     
     # Compare
-    results = comparator.align_and_compare(textract_blocks, doctr_blocks)
+    result = comparator.align_and_compare(textract_blocks, doctr_blocks)
     
-    # Add file info
-    results['files'] = {
-        'textract': textract_path,
-        'doctr': doctr_path,
-        'model': model_name
+    return {
+        "model": model_name,
+        "result": result,
+        "model_info": AVAILABLE_MODELS.get(model_name, {})
     }
-    
-    return results

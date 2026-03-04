@@ -1,5 +1,5 @@
 // OCRBenchmark.jsx
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { useDropzone } from 'react-dropzone';
 import axios from 'axios';
 import './OCRBenchmark.css';
@@ -12,7 +12,8 @@ const OCRBenchmark = () => {
   const [processing, setProcessing] = useState(false);
   const [result, setResult] = useState(null);
   const [error, setError] = useState(null);
-  const [modelName, setModelName] = useState("all-MiniLM-L6-v2");
+  const [selectedModel, setSelectedModel] = useState("all-MiniLM-L6-v2");
+  const [availableModels, setAvailableModels] = useState([]);
 
   const onTextractDrop = useCallback((acceptedFiles) => {
     if (acceptedFiles.length > 0) {
@@ -50,14 +51,19 @@ const OCRBenchmark = () => {
     const formData = new FormData();
     formData.append('textract_json', textractFile);
     formData.append('doctr_json', doctrFile);
-    formData.append('model_name', modelName);
+    formData.append('model_name', selectedModel);
 
     try {
       const response = await axios.post(`${API_BASE}/compare-with-textract`, formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
-        timeout: 120000,
+        timeout: 300000, // 5 minutes
       });
-      setResult(response.data);
+      
+      const data = response.data;
+      setResult(data);
+      setAvailableModels(data.available_models || []);
+      setSelectedModel(data.selected_model || "all-MiniLM-L6-v2");
+      
     } catch (err) {
       setError(err.response?.data?.detail || err.message || 'Comparison failed');
     } finally {
@@ -87,6 +93,9 @@ const OCRBenchmark = () => {
     if (value >= 60) return 'warning';
     return 'danger';
   };
+
+  // Get current model's data
+  const currentModelData = result?.models?.[selectedModel];
 
   return (
     <div className="ocr-benchmark">
@@ -183,25 +192,33 @@ const OCRBenchmark = () => {
       </div>
 
       {/* Model Selector */}
-      <div className="model-section">
-        <div className="model-label">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <circle cx="12" cy="12" r="10" />
-            <path d="M12 18v-4M12 8v4" />
-          </svg>
-          Sentence-BERT Model
+      {result && availableModels.length > 0 && (
+        <div className="model-section">
+          <div className="model-label">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <circle cx="12" cy="12" r="10" />
+              <path d="M12 18v-4M12 8v4" />
+            </svg>
+            Select Model to Display
+          </div>
+          <div className="model-select-wrapper">
+            <select 
+              value={selectedModel} 
+              onChange={(e) => setSelectedModel(e.target.value)} 
+              disabled={processing}
+            >
+              {availableModels.map(model => (
+                <option key={model} value={model}>
+                  {model} {result.model_info?.[model]?.description ? `- ${result.model_info[model].description}` : ''}
+                </option>
+              ))}
+            </select>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <polyline points="6 9 12 15 18 9" />
+            </svg>
+          </div>
         </div>
-        <div className="model-select-wrapper">
-          <select value={modelName} onChange={(e) => setModelName(e.target.value)} disabled={processing}>
-            <option value="all-MiniLM-L6-v2">⚡ all-MiniLM-L6-v2 (Fastest)</option>
-            <option value="all-mpnet-base-v2">🎯 all-mpnet-base-v2 (Balanced)</option>
-            <option value="multi-qa-mpnet-base-dot-v1">🚀 multi-qa-mpnet-base (Most Accurate)</option>
-          </select>
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <polyline points="6 9 12 15 18 9" />
-          </svg>
-        </div>
-      </div>
+      )}
 
       {/* Compare Button */}
       <button className="compare-btn" onClick={handleCompare} disabled={!textractFile || !doctrFile || processing}>
@@ -239,7 +256,7 @@ const OCRBenchmark = () => {
       )}
 
       {/* Results Dashboard */}
-      {result && (
+      {result && currentModelData && (
         <div className="dashboard">
           {/* Document Info */}
           <div className="doc-info">
@@ -258,11 +275,11 @@ const OCRBenchmark = () => {
                   <circle cx="12" cy="12" r="10" />
                   <path d="M12 8v4l3 3" />
                 </svg>
-                {result.metrics?.processing_time?.display || "0ms"}
+                {currentModelData.metrics?.processing_time?.display || "0ms"}
               </div>
             </div>
             <div className="badge">
-              Model: {modelName}
+              Model: {selectedModel}
             </div>
           </div>
 
@@ -272,10 +289,10 @@ const OCRBenchmark = () => {
             <div className="accuracy-card">
               <div className="accuracy-header">
                 <span>Overall Accuracy</span>
-                <span className="status-badge">{result.metrics?.overall_accuracy?.status || 'N/A'}</span>
+                <span className="status-badge">{currentModelData.metrics?.overall_accuracy?.status || 'N/A'}</span>
               </div>
               <div className="accuracy-value">
-                <div className="accuracy-number">{result.metrics?.overall_accuracy?.value || 0}%</div>
+                <div className="accuracy-number">{currentModelData.metrics?.overall_accuracy?.value || 0}%</div>
                 <div className="accuracy-label">Semantic Similarity</div>
               </div>
               <div className="accuracy-footer">
@@ -286,44 +303,44 @@ const OCRBenchmark = () => {
 
             {/* Metrics Grid */}
             <div className="metrics-grid">
-              <div className={`metric-item ${getMetricClass(result.metrics?.semantic_similarity?.value)}`}>
+              <div className={`metric-item ${getMetricClass(currentModelData.metrics?.semantic_similarity?.value)}`}>
                 <div className="metric-icon">🎯</div>
                 <div className="metric-content">
                   <h4>Semantic Similarity</h4>
                   <div className="metric-main">
-                    <span className="value">{result.metrics?.semantic_similarity?.value || 0}</span>
+                    <span className="value">{currentModelData.metrics?.semantic_similarity?.value || 0}</span>
                     <span className="unit">%</span>
                   </div>
                   <div className="metric-progress">
-                    <div className="progress-bar" style={{ width: `${result.metrics?.semantic_similarity?.value || 0}%` }} />
+                    <div className="progress-bar" style={{ width: `${currentModelData.metrics?.semantic_similarity?.value || 0}%` }} />
                   </div>
                 </div>
               </div>
 
-              <div className={`metric-item ${getMetricClass(result.metrics?.word_error_rate?.value, 'error')}`}>
+              <div className={`metric-item ${getMetricClass(currentModelData.metrics?.word_error_rate?.value, 'error')}`}>
                 <div className="metric-icon">📝</div>
                 <div className="metric-content">
                   <h4>Word Error Rate</h4>
                   <div className="metric-main">
-                    <span className="value">{result.metrics?.word_error_rate?.value || 0}</span>
+                    <span className="value">{currentModelData.metrics?.word_error_rate?.value || 0}</span>
                     <span className="unit">%</span>
                   </div>
                   <div className="metric-progress">
-                    <div className="progress-bar" style={{ width: `${result.metrics?.word_error_rate?.value || 0}%` }} />
+                    <div className="progress-bar" style={{ width: `${currentModelData.metrics?.word_error_rate?.value || 0}%` }} />
                   </div>
                 </div>
               </div>
 
-              <div className={`metric-item ${getMetricClass(result.metrics?.character_error_rate?.value, 'error')}`}>
+              <div className={`metric-item ${getMetricClass(currentModelData.metrics?.character_error_rate?.value, 'error')}`}>
                 <div className="metric-icon">🔤</div>
                 <div className="metric-content">
                   <h4>Character Error Rate</h4>
                   <div className="metric-main">
-                    <span className="value">{result.metrics?.character_error_rate?.value || 0}</span>
+                    <span className="value">{currentModelData.metrics?.character_error_rate?.value || 0}</span>
                     <span className="unit">%</span>
                   </div>
                   <div className="metric-progress">
-                    <div className="progress-bar" style={{ width: `${result.metrics?.character_error_rate?.value || 0}%` }} />
+                    <div className="progress-bar" style={{ width: `${currentModelData.metrics?.character_error_rate?.value || 0}%` }} />
                   </div>
                 </div>
               </div>
@@ -331,7 +348,7 @@ const OCRBenchmark = () => {
           </div>
 
           {/* Detailed Comparison Table */}
-          {result.detailed_comparison && (
+          {currentModelData.detailed_comparison && currentModelData.detailed_comparison.length > 0 ? (
             <div className="table-section">
               <div className="table-header">
                 <h3>Detailed Comparison</h3>
@@ -359,16 +376,16 @@ const OCRBenchmark = () => {
                   <div className="table-cell">Status</div>
                 </div>
                 <div className="comparison-rows">
-                  {result.detailed_comparison.map((item, index) => {
+                  {currentModelData.detailed_comparison.map((item, index) => {
                     let status = 'different';
                     let matchClass = '';
                     let matchIndicator = '';
                     
-                    if (item.similarity_score >= 95) {
+                    if (item.match_status === 'exact' || item.similarity_score >= 95) {
                       status = 'exact';
                       matchClass = 'exact';
                       matchIndicator = '✓';
-                    } else if (item.similarity_score >= 70) {
+                    } else if (item.match_status === 'similar' || item.similarity_score >= 70) {
                       status = 'similar';
                       matchClass = 'similar';
                       matchIndicator = '●';
@@ -395,6 +412,10 @@ const OCRBenchmark = () => {
                   })}
                 </div>
               </div>
+            </div>
+          ) : (
+            <div className="empty-table-message">
+              <p>No detailed comparison available for this model.</p>
             </div>
           )}
         </div>
