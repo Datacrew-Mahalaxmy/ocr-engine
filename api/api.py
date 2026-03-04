@@ -1,7 +1,5 @@
 """
-api.py - FastAPI Document Identifier API
-Uses FastAPI instead of Flask
-Modified for Vercel serverless deployment (uses temp files)
+api.py - FastAPI Document Identifier API with proper parallel processing
 """
 
 import os
@@ -23,7 +21,11 @@ from PIL import Image
 import shutil
 from .sbert_similarity import compare_json_files, get_comparator
 import tempfile
+import time
+import multiprocessing
+from functools import lru_cache
 from starlette.exceptions import HTTPException as StarletteHTTPException
+
 os.environ["DOCTR_CACHE_DIR"] = "/tmp"  # Use temp dir
 
 # Add src to path
@@ -54,15 +56,13 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
 # -------------------------------------------------
 # Configuration
 # -------------------------------------------------
 MAX_CONTENT_LENGTH = 100 * 1024 * 1024  # 100MB
-MAX_WORKERS = 1
+MAX_WORKERS = min(4, multiprocessing.cpu_count())  # Don't exceed CPU cores
 MAX_FILE_SIZE_MB = 100
-
-# For Vercel, we use temp directories instead of persistent folders
-# UPLOAD_FOLDER and PROCESSED_FOLDER are not used with temp files
 
 # -------------------------------------------------
 # Load YAML Config
@@ -83,78 +83,80 @@ except Exception as e:
     CONFIG = {"engine": "doctr"}
 
 # -------------------------------------------------
-# Thread-Local Processor
+# GLOBAL PROCESSOR (SINGLETON) - FIX FOR PARALLEL PROCESSING
 # -------------------------------------------------
-thread_local = threading.local()
+_global_processor = None
+_processor_lock = threading.Lock()
 
-
-def get_processor():
-    """Get or create thread-local processor instance"""
-    if not hasattr(thread_local, "processor"):
-        try:
-            from src.processor import DocumentProcessor
-
-            logger.debug(
-                f"Creating processor for thread {threading.get_ident()}"
-            )
-            thread_local.processor = DocumentProcessor(CONFIG)
-
-        except Exception as e:
-            logger.error(f"Failed to create processor: {e}")
-            raise
-
-    return thread_local.processor
-
+def get_global_processor():
+    """Get or create a SINGLE global processor instance (not thread-local)"""
+    global _global_processor
+    if _global_processor is None:
+        with _processor_lock:
+            if _global_processor is None:
+                try:
+                    from src.processor import DocumentProcessor
+                    logger.info("🚀 Creating GLOBAL processor instance (shared across threads)")
+                    start_time = time.time()
+                    _global_processor = DocumentProcessor(CONFIG)
+                    logger.info(f"✅ GLOBAL processor created in {time.time() - start_time:.2f}s")
+                except Exception as e:
+                    logger.error(f"Failed to create global processor: {e}")
+                    raise
+    return _global_processor
 
 # -------------------------------------------------
 # Load Classifier (Singleton)
 # -------------------------------------------------
 try:
     from custom_classifier import get_classifier
-
     classifier = get_classifier()
     logger.info("✅ Document classifier loaded")
-
 except Exception as e:
     logger.warning(f"⚠️ Could not load classifier: {e}")
     classifier = None
 
-
 # -------------------------------------------------
-# Parallel Page Processing Function
+# Parallel Page Processing Function (USES GLOBAL PROCESSOR)
 # -------------------------------------------------
 def process_single_page(args):
     """
-    Process a single page with its own thread-local processor
-    Args:
-        args: (page_num, image, temp_dir)
+    Process a single page with the SHARED global processor
     """
     page_num, image, temp_dir = args
+    
+    thread_id = threading.get_ident()
+    start_time = time.time()
 
     try:
-        processor = get_processor()
+        # Use the global processor (shared across threads)
+        processor = get_global_processor()
 
         # Save preview to temp directory
         preview_path = os.path.join(temp_dir, f"page_{page_num}.png")
         image.save(preview_path, "PNG")
 
+        # Process the image
         results = processor.process_image(image)
         results = processor.post_processor.process(results)
 
         for r in results:
             r["page"] = page_num
 
-        logger.debug(f"Page {page_num}: {len(results)} regions")
+        elapsed = time.time() - start_time
+        logger.debug(f"Page {page_num} (thread {thread_id}): {len(results)} regions in {elapsed:.2f}s")
 
         return {
             "page_num": page_num,
             "results": results,
             "preview_path": preview_path,
             "success": True,
+            "processing_time": elapsed
         }
 
     except Exception as e:
-        logger.error(f"Page {page_num} failed: {e}")
+        elapsed = time.time() - start_time
+        logger.error(f"Page {page_num} failed after {elapsed:.2f}s: {e}")
 
         return {
             "page_num": page_num,
@@ -162,8 +164,8 @@ def process_single_page(args):
             "preview_path": None,
             "success": False,
             "error": str(e),
+            "processing_time": elapsed
         }
-
 
 # -------------------------------------------------
 # Helper function for secure filename
@@ -173,7 +175,6 @@ def secure_filename(filename: str) -> str:
     import re
     filename = re.sub(r'[^a-zA-Z0-9._-]', '_', filename)
     return filename
-
 
 # -------------------------------------------------
 # Health Check Endpoint
@@ -188,9 +189,8 @@ async def health_check():
         "time": datetime.utcnow().isoformat()
     }
 
-
 # -------------------------------------------------
-# Upload and Process Endpoint - MODIFIED FOR VERCEL
+# Upload and Process Endpoint - OPTIMIZED
 # -------------------------------------------------
 @app.post("/upload")
 async def upload_and_process(
@@ -198,9 +198,9 @@ async def upload_and_process(
     engine: str = "doctr"
 ):
     """
-    Upload and process document with parallel page processing
-    Modified for Vercel - uses temporary files instead of persistent storage
+    Upload and process document with optimized parallel page processing
     """
+    overall_start = time.time()
     logger.info(f"📤 Received upload request: {file.filename}")
 
     if not file:
@@ -236,18 +236,20 @@ async def upload_and_process(
         all_results = []
         preview_images = []
         first_image = None
+        page_times = []
 
         # ---------------- PDF Processing ---------------- #
         if file.filename.lower().endswith('.pdf'):
-            logger.info("📄 Processing PDF with parallel threads")
+            logger.info("📄 Processing PDF with optimized parallel threads")
 
             from pdf2image import convert_from_path
 
             try:
                 # Convert PDF to images from temp file
+                convert_start = time.time()
                 images = convert_from_path(tmp_path, dpi=400)
                 page_count = len(images)
-                logger.info(f"   Converted {page_count} pages at 400 DPI")
+                logger.info(f"   Converted {page_count} pages in {time.time() - convert_start:.2f}s at 400 DPI")
             except Exception as e:
                 raise HTTPException(
                     status_code=500,
@@ -257,11 +259,18 @@ async def upload_and_process(
             if images:
                 first_image = images[0]
 
+            # WARM UP: Initialize global processor before parallel processing
+            logger.info("🔥 Warming up global processor...")
+            warmup_start = time.time()
+            get_global_processor()
+            logger.info(f"✅ Global processor warmed up in {time.time() - warmup_start:.2f}s")
+
             process_args = [
                 (page_num + 1, image, temp_dir)
                 for page_num, image in enumerate(images)
             ]
 
+            # Use ThreadPoolExecutor for parallel processing
             with ThreadPoolExecutor(max_workers=MAX_WORKERS) as executor:
                 future_to_page = {
                     executor.submit(process_single_page, args): args[0]
@@ -274,6 +283,7 @@ async def upload_and_process(
 
                     try:
                         result = future.result(timeout=300)
+                        page_times.append(result.get('processing_time', 0))
 
                         if result["success"]:
                             all_results.extend(result["results"])
@@ -281,12 +291,15 @@ async def upload_and_process(
                                 preview_images.append(result["preview_path"])
 
                         completed += 1
-                        logger.debug(f"Progress: {completed}/{page_count} pages complete")
+                        if completed % 5 == 0 or completed == page_count:
+                            logger.info(f"Progress: {completed}/{page_count} pages complete")
 
                     except Exception as e:
                         logger.error(f"Page {page_num} failed: {e}")
 
-            logger.info(f"✅ Processed {page_count} pages with {MAX_WORKERS} threads")
+            avg_page_time = sum(page_times) / len(page_times) if page_times else 0
+            logger.info(f"✅ Processed {page_count} pages with {MAX_WORKERS} threads. "
+                       f"Avg page time: {avg_page_time:.2f}s, Total: {time.time() - overall_start:.2f}s")
 
         # ---------------- Image Processing ---------------- #
         else:
@@ -301,11 +314,11 @@ async def upload_and_process(
             image.save(preview_path, "PNG")
             preview_images.append(preview_path)
 
-            processor = get_processor()
+            processor = get_global_processor()
             results = processor.process_image(image)
             results = processor.post_processor.process(results)
             all_results = results
-            logger.info(f"   Found {len(results)} regions")
+            logger.info(f"   Found {len(results)} regions in {time.time() - overall_start:.2f}s")
 
         # ---------------- Save Results to Temp ---------------- #
         text_by_page = {}
@@ -380,18 +393,21 @@ async def upload_and_process(
                 }
 
         # ---------------- Response ---------------- #
+        total_time = time.time() - overall_start
         response = {
             "success": True,
             "session_id": session_id,
             "filename": filename,
             "total_regions": len(all_results),
             "text_by_page": {str(k): v for k, v in text_by_page.items()},
-            "preview_images": [],  # Can't return file paths in serverless
+            "preview_images": [],
             "classification": classification,
+            "processing_time": round(total_time, 2),
+            "pages_processed": len(text_by_page),
             "note": "Files saved to temp directory (will be deleted)"
         }
 
-        logger.info(f"✅ Complete for {session_id}")
+        logger.info(f"✅ Complete for {session_id} in {total_time:.2f}s")
         return JSONResponse(content=response)
 
     except HTTPException:
@@ -403,6 +419,10 @@ async def upload_and_process(
         # Clean up temp file
         if os.path.exists(tmp_path):
             os.unlink(tmp_path)
+
+# -------------------------------------------------
+# [Rest of your endpoints remain the same...]
+# -------------------------------------------------
 
 
 # -------------------------------------------------

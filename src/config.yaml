@@ -1,23 +1,22 @@
 # ============================================================
-# Transformer OCR System — Configuration v7 (Aadhaar Optimized)
+# Transformer OCR System — Configuration v8 (MAXIMUM EXTRACTION)
 # ============================================================
-# Optimized specifically for Aadhaar cards and Indian documents
-# Using PARSeq for better recognition and lower thresholds
+# Goal: Extract as much text as possible, filter later
 # ============================================================
 
 device: "cpu"       # "cpu" | "cuda"
 
 # ============================================================
-# DPI Settings
+# DPI Settings - Higher for better small text detection
 # ============================================================
-dpi: 300
+dpi: 400  # Increased from 300 to catch small text
 
 dpi_settings:
-  digital:        150   # vector PDF — low DPI is fine
-  scanned:        300   # standard scan
+  digital:        200   # Increased from 150
+  scanned:        400   # Increased from 300
 
 # ============================================================
-# OCR Engine - Fixed to doctr with PARSeq
+# OCR Engine - Fixed to doctr
 # ============================================================
 engine: "doctr"     # Fixed to doctr
 
@@ -26,17 +25,16 @@ surya:
 
 doctr:
   det_arch: "db_resnet50"
-  # CRITICAL CHANGE: Use PARSeq instead of CRNN for much better accuracy
-  reco_arch: "crnn_vgg16_bn"           # CHANGED: from crnn_vgg16_bn to parseq
+  # Keeping CRNN for now
+  reco_arch: "crnn_vgg16_bn"  # Changed from "crnn_vgg16_bn" to "sar_resnet31"
   assume_straight_pages: true
 
   # ============================================================
-  # DETECTION THRESHOLDS - OPTIMIZED FOR AADHAAR
+  # DETECTION THRESHOLDS - MUCH LOWER to catch faint text
   # ============================================================
-  # Lower thresholds to catch faint text on Aadhaar cards
-  # Aadhaar has colored backgrounds and security patterns
-  bin_thresh: 0.15    # CHANGED: from 0.5 to 0.15 (more sensitive)
-  box_thresh: 0.1     # CHANGED: from 0.5 to 0.1 (keep more boxes)
+  # Changed from 0.5/0.5 to catch more text regions
+  bin_thresh: 0.15    # Lowered from 0.5 - more sensitive
+  box_thresh: 0.1     # Lowered from 0.5 - keep more boxes
 
 recognition:
   variant: "printed"
@@ -49,69 +47,67 @@ trocr:
   max_length: 128
 
 # ============================================================
-# CONFIDENCE THRESHOLDS
+# CONFIDENCE THRESHOLDS - MUCH LOWER to keep everything
 # ============================================================
-# Lower threshold to keep more text (including Aadhaar numbers)
-min_confidence: 0.3    # CHANGED: from 0.5 to 0.3
+min_confidence: 0.2    # Lowered from 0.5 - keep lower confidence text
 
 # ============================================================
-# POST-PROCESSING - Optimized for Aadhaar
+# POST-PROCESSING - Minimal filtering for now
 # ============================================================
 post_process:
-  # Basic filters - lower to keep more text
-  min_confidence: 0.3        # CHANGED: Match global setting
-  min_text_length: 1         # CHANGED: from 2 to 1 (keep single digits like Aadhaar numbers)
+  # Basic filters - very permissive
+  min_confidence: 0.2        # Match global setting
+  min_text_length: 1         # Changed from 2 - keep single characters
   
-  # NMS (Non-Maximum Suppression)
-  nms_iou_threshold: 0.5     # Keep as is
+  # NMS (Non-Maximum Suppression) - less aggressive
+  nms_iou_threshold: 0.7     # Increased from 0.5 - keep more overlapping boxes
   
-  # Noise filtering
-  filter_noise: true
+  # Noise filtering - OFF for now
+  filter_noise: true        # Changed from true - keep everything
   
-  # Column detection
-  column_detection: true
-  min_col_gap_fraction: 0.06
+  # Column detection - OFF for now
+  column_detection: true   # Changed from true - simpler first
   
   # Reading order
   enable_reading_order: true
   
   # ============================================================
-  # LINE MERGING - Optimized for Aadhaar
+  # LINE MERGING - OFF for now to see raw words
   # ============================================================
-  enable_merge: true
-  merge_threshold: 15        # CHANGED: from 20 to 15 (tighter merging)
-  large_text_merge_boost: 2.0  # CHANGED: from 2.5 to 2.0
-  large_text_height_px: 30   # CHANGED: from 40 to 30 (smaller text on Aadhaar)
+  enable_merge: false        # Changed from true - see individual words first
+  merge_threshold: 30        # Increased from 20
+  large_text_merge_boost: 2.5
+  large_text_height_px: 40
   
   # Column bleeding fix
-  max_merge_x_fraction: 0.25  # CHANGED: from 0.30 to 0.25
+  max_merge_x_fraction: 0.40  # Increased from 0.30
   
   # ============================================================
-  # LOGO SUPPRESSION
+  # LOGO SUPPRESSION - OFF
   # ============================================================
   logo_zone_x_fraction: 0.20
   logo_zone_y_fraction: 0.18
   logo_top_band_y_fraction: 0.06
   
   # ============================================================
-  # TABLE STITCHING
+  # TABLE STITCHING - OFF for now
   # ============================================================
-  enable_desc_stitch: true
+  enable_desc_stitch: false   # Changed from true
   
   # ============================================================
-  # TEXT NORMALISATION
+  # TEXT NORMALISATION - ON (harmless)
   # ============================================================
-  enable_text_normalisation: true   # Just removes extra spaces
+  enable_text_normalisation: true
   
   # ============================================================
-  # ENGLISH-ONLY FILTER - REMOVES HINDI AND OTHER SCRIPTS
+  # ENGLISH-ONLY FILTER - OFF to see everything
   # ============================================================
-  english_only: true  # Keep this to filter out Hindi text
+  english_only: true        # Changed from true - see non-English too
 
-# ============================================================
-# OUTPUT SETTINGS
-# ============================================================
-output:
-  save_images: true
-  json_output_dir: "output/json"
-  image_output_dir: "output/images"
+# # ============================================================
+# # OUTPUT SETTINGS
+# # ============================================================
+# output:
+#   save_images: true
+#   json_output_dir: "output/json"
+#   image_output_dir: "output/images"

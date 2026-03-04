@@ -1,12 +1,5 @@
 """
-processor.py - Main document processing pipeline v4 (stable)
-
-Stable base: v3 logic preserved exactly.
-v4 additions (safe only):
-  - doc_type tag per result (for PostProcessor adaptive merge)
-  - simple scanned-vs-digital detection via pixel std (no side effects)
-  - no image region suppression (was too aggressive, caused regressions)
-  - no auto-DPI (use config dpi directly, default 300)
+processor.py - Main document processing pipeline v5 (with image preprocessing)
 """
 
 import logging
@@ -17,7 +10,8 @@ from PIL import Image
 from tqdm import tqdm
 
 from .detector import TextDetector
-from .utils import PostProcessor, save_results, visualize_results, export_to_txt
+from .utils import EnhancedPostProcessor, save_results, visualize_results, export_to_txt
+from .preprocess import get_preprocessor
 
 logger = logging.getLogger(__name__)
 
@@ -41,7 +35,7 @@ def _detect_document_type(image: Image.Image) -> str:
 
 class DocumentProcessor:
     """
-    End-to-end OCR pipeline for any document type.
+    End-to-end OCR pipeline for any document type with image preprocessing.
     Outputs per word/line: text, bbox [x1,y1,x2,y2], confidence, page, engine.
     """
 
@@ -53,10 +47,13 @@ class DocumentProcessor:
         logger.info(f"Engine: {config.get('engine', 'auto')}")
 
         self.detector       = TextDetector(config)
-        self.post_processor = PostProcessor(config.get("post_process", {}))
+        self.post_processor = EnhancedPostProcessor(config.get("post_process", {}))
+        
+        # Initialize preprocessor (will be adapted per document type)
+        self.preprocessor = get_preprocessor('default')
 
         self._setup_output_dirs()
-        logger.info("DocumentProcessor ready")
+        logger.info("DocumentProcessor ready with image preprocessing")
 
     # ── PDF ──────────────────────────────────────────────────────────────────
 
@@ -72,8 +69,14 @@ class DocumentProcessor:
         all_results: List[Dict] = []
         all_images: Optional[List[Image.Image]] = [] if return_images else None
 
+        # Detect document type from first page for adaptive preprocessing
+        if images:
+            doc_type = self._detect_detailed_document_type(images[0])
+            self.preprocessor = get_preprocessor(doc_type)
+            logger.info(f"Using {doc_type}-specific preprocessing")
+
         for idx, image in enumerate(tqdm(images, desc="Pages"), start=start_page):
-            # process_image returns RAW detections — post-processing applied once below
+            # Process image with preprocessing
             page_results = self.process_image(image, page_num=idx)
             all_results.extend(page_results)
             if return_images:
@@ -103,7 +106,7 @@ class DocumentProcessor:
         page_num: int = 1,
     ) -> List[Dict]:
         """
-        OCR a single PIL image. Returns RAW (unfiltered) detection dicts.
+        OCR a single PIL image with preprocessing. Returns RAW (unfiltered) detection dicts.
         Callers must invoke self.post_processor.process() on the results.
         """
         image = image.convert("RGB")
@@ -112,7 +115,16 @@ class DocumentProcessor:
         # Lightweight doc-type detection (no side effects — just metadata tag)
         doc_type = _detect_document_type(image)
 
-        detections = self.detector.detect_with_crops(image)
+        # Step 1: Preprocess the image for better OCR
+        try:
+            processed_image = self.preprocessor.preprocess(image)
+            logger.debug(f"Page {page_num}: Applied preprocessing")
+        except Exception as e:
+            logger.warning(f"Preprocessing failed for page {page_num}: {e}, using original image")
+            processed_image = image
+
+        # Step 2: Run OCR on preprocessed image
+        detections = self.detector.detect_with_crops(processed_image)
 
         results = []
         for det in detections:
@@ -122,10 +134,6 @@ class DocumentProcessor:
             results.append({
                 "text":                    det["text"],
                 "bbox":                    det["bbox"],
-                # Separate scores: detection_confidence = how cleanly the region was found,
-                # recognition_confidence = how sure the model is about the text string.
-                # When the engine provides both (DocTR), they differ meaningfully.
-                # When only one is available (Surya, TrOCR+DBNet), both equal that score.
                 "detection_confidence":    det_conf,
                 "recognition_confidence":  rec_conf,
                 "confidence":              conf,
@@ -179,6 +187,33 @@ class DocumentProcessor:
         )
         logger.info(f"Converted {len(images)} pages at {dpi} dpi (doc_type={doc_type})")
         return images
+
+    def _detect_detailed_document_type(self, image: Image.Image) -> str:
+        """
+        Detect document type for adaptive preprocessing.
+        Uses quick heuristics to choose the best preprocessor.
+        """
+        import numpy as np
+        
+        # Convert to grayscale
+        gray = np.array(image.convert("L"))
+        
+        # Check if it's Aadhaar (colored background, specific patterns)
+        # Simple heuristic: check for high contrast areas and typical layout
+        h, w = gray.shape
+        top_region = gray[:h//4, :]
+        
+        if np.std(top_region) > 50 and np.mean(top_region) < 200:
+            # Likely Aadhaar with colored background and text
+            return 'aadhaar_card'
+        
+        # Check for tabular structure (bank statements)
+        edges = cv2.Canny(gray, 50, 150)
+        horizontal_lines = np.sum(edges, axis=1)
+        if np.max(horizontal_lines) > w * 0.3:
+            return 'bank_statement'
+        
+        return 'default'
 
     def _setup_output_dirs(self):
         out = self.config.get("output", {})

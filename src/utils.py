@@ -1,25 +1,324 @@
 """
-utils.py - Post-processing, visualisation, and I/O utilities
-Enhanced version for Aadhaar cards and Indian documents
+utils.py - Enhanced Post-processing with Priority 1,2,3 fixes
+Priority 1: Date Normalization
+Priority 2: Better Garbage Pattern Removal
+Priority 3: Hindi Script Detection/Filtering
 """
 
 import json
 import logging
 import numpy as np
+import re
 from pathlib import Path
 from typing import List, Dict, Optional, Tuple
 from PIL import Image, ImageDraw, ImageFont
+from collections import Counter
 
 logger = logging.getLogger(__name__)
 
 
-class PostProcessor:
+class GenericTextCleaner:
     """
-    Enhanced OCR post-processor for Aadhaar cards and Indian documents.
-    Handles: English extraction, garbage filtering, corrupted page detection.
+    Generic text cleaner with Priority 1,2,3 fixes
+    """
+    
+    def __init__(self):
+        # ==================== PRIORITY 2: GARBAGE PATTERNS ====================
+        self.GARBAGE_PATTERNS = [
+            r'^[0-9]{1,2}$',              # Single/double digits alone
+            r'^[0-9]{10,}$',                # Long number sequences (page numbers)
+            r'^[^a-zA-Z0-9\s]+$',           # Pure symbols
+            r'^_{2,}$',                      # Underline sequences
+            r'^-{2,}$',                       # Dash sequences
+            r'^\.{2,}$',                       # Dot sequences
+            r'^[*]{2,}$',                      # Star sequences
+            r'^[=]{2,}$',                       # Equal sequences
+            r'^[+]{2,}$',                       # Plus sequences
+            r'^[~]{2,}$',                       # Tilde sequences
+            r'^\d+\.$',                         # Numbered list markers (1., 2.)
+            r'^\d+\s*\d+\s*\d+$',               # Multiple numbers (page numbers)
+            r'^[A-Z]{1,2}$',                     # Single/double uppercase (I, A, AB)
+            r'^[a-z]{1,2}$',                     # Single/double lowercase
+            r'^[>@&*#%]+$',                      # Special characters like >>, &&, @@
+            r'^[•●○■□▪▫]',                      # Bullet points
+            r'^[│┃┄┅┆┇┈┉┊┋]',                  # Box drawing characters
+        ]
+        
+        # Patterns that might be valid despite looking like garbage
+        self.SUSPICIOUS_PATTERNS = [
+            r'^[A-Z]{3}$',                  # Three uppercase (like ABC) - might be acronym
+            r'^\d{3}$',                      # Three digits - might be part of number
+            r'^\d{4}$',                      # Four digits - might be Aadhaar part
+        ]
+        
+        # Common OCR noise patterns
+        self.OCR_NOISE_PATTERNS = [
+            (r'\s+', ' '),   # Multiple spaces to single
+            (r'\s+([.,!?;:])', r'\1'),  # Space before punctuation
+        ]
+
+    def clean_text(self, text: str) -> str:
+        """
+        Main cleaning function with Priority 1,2,3 fixes
+        """
+        if not text or len(text.strip()) < 2:
+            return ""
+        
+        original = text
+        text = text.strip()
+        
+        # Fix line breaks
+        text = self._fix_line_breaks(text)
+        
+        # ==================== PRIORITY 1: DATE NORMALIZATION ====================
+        text = self._normalize_dates(text)
+        
+        # Fix OCR noise
+        text = self._fix_ocr_noise(text)
+        
+        # ==================== PRIORITY 2: GARBAGE DETECTION ====================
+        if self._is_garbage(text):
+            return ""
+        
+        # Final normalization
+        text = ' '.join(text.split())
+        
+        if text != original and len(text) > 0:
+            logger.debug(f"🧹 Cleaned: '{original[:50]}...' -> '{text[:50]}...'")
+        
+        return text
+
+    def _fix_line_breaks(self, text: str) -> str:
+        """Fix words broken by line breaks"""
+        if not text:
+            return text
+        
+        # Replace newlines with spaces
+        text = text.replace('\n', ' ').replace('\r', ' ')
+        
+        words = text.split()
+        if len(words) <= 1:
+            return text
+        
+        fixed_words = []
+        i = 0
+        
+        while i < len(words):
+            # Single letter + longer word (a bcd -> abcd)
+            if (i < len(words) - 1 and 
+                len(words[i]) == 1 and 
+                len(words[i+1]) > 1 and
+                words[i].isalpha() and 
+                words[i+1].isalpha()):
+                fixed_words.append(words[i] + words[i+1])
+                i += 2
+            else:
+                fixed_words.append(words[i])
+                i += 1
+        
+        return ' '.join(fixed_words)
+
+    # ==================== PRIORITY 1: DATE NORMALIZATION ====================
+    
+    def _normalize_dates(self, text: str) -> str:
+        """
+        Fix common date OCR errors and standardize format
+        """
+        if not text:
+            return text
+        
+        # Fix common date OCR errors
+        corrections = [
+            # Fix years like 201977 -> 1977 (but keep 2025, 2024 etc.)
+            (r'(\d{1,2}[/-]\d{1,2}[/-])(20\d{2})(\d{2})', lambda m: m.group(1) + m.group(2)[:4]),  # 21/2/201985 -> 21/2/2019
+            (r'(\d{1,2}[/-]\d{1,2}[/-])(\d{4})(\d{2})', lambda m: m.group(1) + m.group(2)),  # Remove extra digits
+            
+            # Fix missing slashes
+            (r'(\d{2})(\d{2})(\d{4})', r'\1/\2/\3'),  # 01011985 -> 01/01/1985
+            
+            # Standardize separators
+            (r'(\d{2})[-.](\d{2})[-.](\d{4})', r'\1/\2/\3'),  # 01-01-1985 or 01.01.1985 -> 01/01/1985
+            (r'(\d{1,2})[-.](\d{1,2})[-.](\d{2})', r'\1/\2/20\3'),  # 01-01-85 -> 01/01/1985
+            
+            # Fix OCR errors in dates
+            (r'0x', '08'),  # 31-0x-2025 -> 31-08-2025
+            (r'xx', ''),    # Remove stray xx
+        ]
+        
+        for pattern, replacement in corrections:
+            if callable(replacement):
+                text = re.sub(pattern, replacement, text)
+            else:
+                text = re.sub(pattern, replacement, text)
+        
+        # Validate and fix impossible years
+        date_pattern = r'\d{1,2}[/-]\d{1,2}[/-]\d{4}'
+        dates = re.findall(date_pattern, text)
+        
+        for date in dates:
+            # Handle both / and - separators
+            sep = '/' if '/' in date else '-'
+            parts = date.split(sep)
+            if len(parts) == 3:
+                day, month, year = parts
+                # Pad day and month to 2 digits
+                day = day.zfill(2)
+                month = month.zfill(2)
+                year_int = int(year)
+                
+                # Fix impossible years
+                if year_int < 1900 or year_int > 2030:
+                    # Try to extract last 4 digits
+                    year_str = str(year_int)
+                    if len(year_str) > 4:
+                        fixed_year = year_str[-4:]
+                        if 1900 <= int(fixed_year) <= 2030:
+                            fixed_date = f"{day}/{month}/{fixed_year}"
+                            text = text.replace(date, fixed_date)
+                            logger.debug(f"📅 Fixed date: {date} -> {fixed_date}")
+        
+        return text
+
+    def _fix_ocr_noise(self, text: str) -> str:
+        """Fix common OCR noise patterns"""
+        for pattern, replacement in self.OCR_NOISE_PATTERNS:
+            text = re.sub(pattern, replacement, text)
+        return text
+
+    # ==================== PRIORITY 2: GARBAGE DETECTION ====================
+    
+    def _should_keep_despite_garbage(self, text: str) -> bool:
+        """
+        Check if text should be kept even if it matches garbage patterns
+        """
+        # Keep if it's a 4-digit number (could be Aadhaar part)
+        if re.match(r'^\d{4}$', text):
+            return True
+        
+        # Keep if it's a 10-digit number (could be phone)
+        if re.match(r'^\d{10}$', text):
+            return True
+        
+        # Keep if it's a 12-digit number with spaces (Aadhaar)
+        if re.match(r'^\d{4}\s*\d{4}\s*\d{4}$', text):
+            return True
+        
+        # Keep if it's a PAN number format
+        if re.match(r'^[A-Z]{5}\d{4}[A-Z]$', text):
+            return True
+        
+        # Keep if it has letters AND digits (like ABC123)
+        if re.search(r'[A-Za-z]', text) and re.search(r'\d', text):
+            return True
+        
+        return False
+
+    def _is_garbage(self, text: str) -> bool:
+        """
+        Enhanced garbage detection - PRIORITY 2
+        """
+        if not text or len(text.strip()) < 2:
+            return True
+        
+        # First check if it's something we should keep despite patterns
+        if self._should_keep_despite_garbage(text):
+            return False
+        
+        # Check against garbage patterns
+        for pattern in self.GARBAGE_PATTERNS:
+            if re.match(pattern, text):
+                logger.debug(f"🗑️ Garbage pattern match: '{text}' matches {pattern}")
+                return True
+        
+        # Character composition analysis
+        letters = sum(c.isalpha() for c in text)
+        digits = sum(c.isdigit() for c in text)
+        spaces = text.count(' ')
+        others = len(text) - letters - digits - spaces
+        
+        # If mostly symbols, it's garbage
+        if others > letters + digits and letters + digits < 3:
+            return True
+        
+        # If it has letters, check vowel ratio for longer words
+        if letters > 3:
+            vowels = sum(1 for c in text.lower() if c in 'aeiou')
+            if vowels == 0:
+                return True  # No vowels in longer text = likely garbage
+        
+        return False
+
+    def merge_line_groups(self, results: List[Dict]) -> List[Dict]:
+        """
+        Merge text that should be on same line
+        """
+        if len(results) <= 1:
+            return results
+        
+        # Make a copy to avoid modifying original
+        items = []
+        for r in results:
+            item = r.copy()
+            items.append(item)
+        
+        # Sort by page, then y-position (top to bottom)
+        items.sort(key=lambda x: (x.get('page', 1), x['bbox'][1]))
+        
+        merged = []
+        current = items[0].copy()
+        
+        for next_item in items[1:]:
+            # Different pages - can't merge
+            if current.get('page', 1) != next_item.get('page', 1):
+                current['text'] = self.clean_text(current['text'])
+                if current['text']:
+                    merged.append(current)
+                current = next_item.copy()
+                continue
+            
+            # Calculate vertical center
+            y1_current = current['bbox'][1]
+            y2_current = current['bbox'][3]
+            y1_next = next_item['bbox'][1]
+            y2_next = next_item['bbox'][3]
+            
+            center_current = (y1_current + y2_current) / 2
+            center_next = (y1_next + y2_next) / 2
+            height_current = y2_current - y1_current
+            
+            # Calculate horizontal gap
+            x_gap = next_item['bbox'][0] - current['bbox'][2]
+            
+            # If vertically close and not too far horizontally
+            if (abs(center_current - center_next) < height_current * 0.8 and
+                x_gap < height_current * 3):
+                # Same line - merge
+                current['text'] += ' ' + next_item['text']
+                current['bbox'][2] = max(current['bbox'][2], next_item['bbox'][2])
+                current['bbox'][3] = max(current['bbox'][3], next_item['bbox'][3])
+                current['confidence'] = min(current['confidence'], next_item['confidence'])
+            else:
+                # Different line - add current and move to next
+                current['text'] = self.clean_text(current['text'])
+                if current['text']:
+                    merged.append(current)
+                current = next_item.copy()
+        
+        # Add last item
+        current['text'] = self.clean_text(current['text'])
+        if current['text']:
+            merged.append(current)
+        
+        logger.debug(f"📏 Line merging: {len(results)} -> {len(merged)}")
+        return merged
+
+
+class EnhancedPostProcessor:
+    """
+    Enhanced OCR post-processor with Priority 1,2,3 fixes
     """
 
-    def __init__(self, config: dict):
+    def __init__(self, config: dict, doc_type: str = 'default'):
         # Basic settings
         self.min_confidence = config.get("min_confidence", 0.5)
         self.min_text_length = config.get("min_text_length", 2)
@@ -28,25 +327,15 @@ class PostProcessor:
         self.enable_reading_order = config.get("enable_reading_order", True)
         self.enable_merge = config.get("enable_merge", True)
         self.column_detection = config.get("column_detection", True)
-        self.filter_noise = config.get("filter_noise", True)
-        self.min_col_gap_fraction = config.get("min_col_gap_fraction", 0.06)
-        self.large_text_boost = config.get("large_text_merge_boost", 2.5)
-        self.large_text_height_px = config.get("large_text_height_px", 40)
         
-        # Column settings
-        self.max_merge_x_fraction = config.get("max_merge_x_fraction", 0.30)
-        self.logo_zone_x = config.get("logo_zone_x_fraction", 0.20)
-        self.logo_zone_y = config.get("logo_zone_y_fraction", 0.18)
-        self.logo_top_band_y = config.get("logo_top_band_y_fraction", 0.06)
-        
-        # Feature toggles
-        self.enable_desc_stitch = config.get("enable_desc_stitch", True)
-        self.enable_text_normalisation = config.get("enable_text_normalisation", True)
-        
-        # English-only settings
+        # Language settings
         self.english_only = config.get("english_only", True)
+        self.doc_type = doc_type
         
-        # Unicode ranges for Indian scripts (to filter out)
+        # Add text cleaner
+        self.text_cleaner = GenericTextCleaner()
+        
+        # Unicode ranges for Indian scripts
         self.INDIAN_SCRIPT_RANGES = (
             (0x0900, 0x097F),   # Devanagari (Hindi, Sanskrit, Marathi, Nepali)
             (0x0980, 0x09FF),   # Bengali & Assamese
@@ -60,154 +349,92 @@ class PostProcessor:
             (0x0D80, 0x0DFF),   # Sinhala
         )
         
-        # Internal tracking
-        self._last_rejection_reason = 'unknown'
-
-    def process(self, results: List[Dict]) -> List[Dict]:
-        """Main processing pipeline"""
-        if not results:
-            return results
-
-        # Step 0: Filter out entire corrupted pages
-        results = self._filter_corrupted_pages(results)
+        # Devanagari range specifically for Hindi
+        self.DEVANAGARI_RANGE = (0x0900, 0x097F)
         
-        # Step 1: Statistical garbage filtering
-        results = self._statistical_filter(results)
-        
-        if not results:
-            return results
-
-        # Step 2: Remove duplicate overlapping boxes (NMS)
-        results = remove_overlapping_boxes(results, iou_threshold=self.nms_iou_threshold)
-
-        # Step 3: Column-aware reading order sort
-        if self.enable_reading_order:
-            results = self._column_aware_sort(results)
-
-        # Step 4: Merge words into lines
-        if self.enable_merge:
-            results = self._merge_lines(results)
-
-        # Step 5: Stitch multi-line table descriptions
-        if self.enable_desc_stitch:
-            results = self._stitch_table_descriptions(results)
-
-        # Step 6: Text normalisation (just remove extra spaces)
-        if self.enable_text_normalisation:
-            for r in results:
-                r["text"] = ' '.join(r["text"].split())
-
-        return results
-
-    # ==================== CORRUPTED PAGE DETECTION ====================
-    
-    def _is_corrupted_page(self, results: List[Dict]) -> bool:
-        """Detect if a page is corrupted (like all 1's or all symbols)"""
-        if not results:
-            return True
-        
-        # Get all text from the page
-        all_text = ' '.join([r.get('text', '') for r in results])
-        
-        if len(all_text) < 10:
-            return False  # Too short to judge
-        
-        # Check for repeating patterns (like all 1's)
-        if len(all_text) > 20:
-            # Check if it's all the same character or digits
-            unique_chars = set(all_text.replace(' ', ''))
-            
-            # If very few unique characters, might be corrupted
-            if len(unique_chars) <= 3:
-                # Check if it's just numbers or symbols
-                all_digits = all(c.isdigit() or c.isspace() for c in all_text)
-                all_symbols = all(ord(c) > 0x2000 or c.isspace() for c in all_text)
-                
-                if all_digits or all_symbols:
-                    logger.info(f"Corrupted page detected: {all_text[:50]}...")
-                    return True
-        
-        return False
-    
-    def _filter_corrupted_pages(self, results: List[Dict]) -> List[Dict]:
-        """Remove entire pages that are corrupted"""
-        if not results:
-            return results
-        
-        # Group by page
-        pages = {}
-        for r in results:
-            page = r.get('page', 1)
-            if page not in pages:
-                pages[page] = []
-            pages[page].append(r)
-        
-        # Filter each page
-        clean_results = []
-        for page_num, page_results in pages.items():
-            if not self._is_corrupted_page(page_results):
-                clean_results.extend(page_results)
-            else:
-                logger.info(f"Filtered corrupted page {page_num}")
-        
-        return clean_results
-
-    # ==================== STATISTICAL FILTERING ====================
-    
-    def _statistical_filter(self, results: List[Dict]) -> List[Dict]:
-        """Pure statistical filtering - works on ANY document"""
-        if not results:
-            return results
-
-        out = []
-        stats = {
+        # Statistics tracking
+        self.stats = {
+            'garbage': 0,
             'non_english': 0,
-            'low_conf': 0,
+            'hindi_removed': 0,
             'too_short': 0,
-            'statistical_reject': 0,
+            'low_conf': 0,
             'kept': 0
         }
 
-        for r in results:
-            text = r.get("text", "").strip()
-            conf = r.get("confidence", 0)
+    def process(self, results: List[Dict]) -> List[Dict]:
+        """Main processing pipeline with Priority 1,2,3 fixes"""
+        if not results:
+            return results
 
-            # Basic quality
-            if len(text) < self.min_text_length:
-                stats['too_short'] += 1
-                continue
+        logger.info(f"🔧 Starting enhanced post-processing with Priority 1,2,3 fixes")
+        original_count = len(results)
 
-            # Confidence filter
-            if conf < self.min_confidence:
-                stats['low_conf'] += 1
-                continue
+        # Step 1: Filter corrupted pages
+        results = self._filter_corrupted_pages(results)
+        
+        # ==================== PRIORITY 3: HINDI SCRIPT DETECTION/FILTERING ====================
+        if self.english_only:
+            results = self._remove_non_english(results)
+        
+        # Step 2: Basic filtering
+        results = self._basic_filter(results)
+        
+        # Step 3: Remove overlapping boxes
+        results = remove_overlapping_boxes(results, iou_threshold=self.nms_iou_threshold)
 
-            # English-only filter (remove Hindi and other Indian scripts)
-            if self.english_only:
-                if not self._is_english_text(text):
-                    stats['non_english'] += 1
-                    continue
+        # Step 4: Column-aware sorting
+        if self.enable_reading_order:
+            results = self._column_aware_sort(results)
 
-            # Apply statistical tests
-            if not self._statistically_valid(text):
-                stats['statistical_reject'] += 1
-                continue
+        # Step 5: Merge lines with text cleaning (includes Priority 1 & 2)
+        if self.enable_merge:
+            results = self.text_cleaner.merge_line_groups(results)
+        else:
+            for r in results:
+                r['text'] = self.text_cleaner.clean_text(r['text'])
+            results = [r for r in results if r['text']]
 
-            out.append(r)
-            stats['kept'] += 1
+        logger.info(f"📊 Filter stats: kept {len(results)}/{original_count}")
+        logger.info(f"   Reasons: {self.stats}")
+        
+        return results
 
-        # Log statistics
-        if stats['kept'] > 0 or sum(stats.values()) > 0:
-            logger.info(f"Filter stats: {stats}")
-
-        return out
+    # ==================== PRIORITY 3: HINDI SCRIPT DETECTION ====================
     
+    def _is_hindi_text(self, text: str) -> bool:
+        """
+        Detect Hindi/Devanagari script - PRIORITY 3
+        """
+        if not text:
+            return False
+        
+        devanagari_chars = 0
+        total_chars = 0
+        
+        for char in text:
+            code = ord(char)
+            if code >= self.DEVANAGARI_RANGE[0] and code <= self.DEVANAGARI_RANGE[1]:
+                devanagari_chars += 1
+                total_chars += 1
+            elif char.isalpha():
+                total_chars += 1
+        
+        if total_chars == 0:
+            return False
+        
+        # If more than 20% of alphabetic chars are Devanagari, it's Hindi
+        return (devanagari_chars / total_chars) > 0.2
+
     def _is_english_text(self, text: str) -> bool:
-        """Check if text contains only English/Latin characters"""
+        """Check if text is English (ASCII + common punctuation)"""
+        if not text:
+            return False
+        
         for char in text:
             code = ord(char)
             
-            # Allow ASCII range (English letters, numbers, punctuation)
+            # Allow ASCII range
             if 32 <= code <= 126:
                 continue
             
@@ -224,302 +451,101 @@ class PostProcessor:
             return False
         
         return True
-    
-    def _statistically_valid(self, text: str) -> bool:
-        """
-        Enhanced statistical validation for all types of input
-        """
-        if len(text) < 2:
-            return False
-        
-        # Check for repeating symbols (like  from corrupted PDFs)
-        symbol_count = sum(1 for c in text if ord(c) > 0x2000)  # Unicode symbols
-        if symbol_count > 0 and symbol_count / len(text) > 0.3:
-            return False
-        
-        # Check for long runs of the same digit (like "111111")
-        for i in range(len(text)-4):
-            if i+5 <= len(text) and all(c == text[i] for c in text[i:i+5]):
-                if text[i].isdigit():
-                    return False
-        
-        # Character type counts
-        letters = sum(1 for c in text if c.isalpha())
-        digits = sum(1 for c in text if c.isdigit())
-        spaces = text.count(' ')
-        
-        # If it's all digits, keep it (like 7419, 0949, 4800)
-        if digits == len(text) - spaces:
-            return True
-        
-        # If it's a mix but mostly digits, keep it (like "VID: 9125 2113")
-        if digits > 0 and letters > 0:
-            if digits / len(text) > 0.3:
-                return True
-        
-        # If it has no letters at all but has digits, keep it
-        if letters == 0 and digits > 0:
-            return True
-        
-        # Regular statistical checks for text
-        if letters > 0:
-            vowels = sum(1 for c in text.lower() if c in 'aeiou')
-            vowel_ratio = vowels / letters
-            
-            # If it has vowels, probably real text
-            if vowel_ratio > 0.15:
-                return True
-            
-            # Check for consonant clusters (garbage like "STRPAT")
-            words = text.split()
-            for word in words:
-                if len(word) > 4:
-                    max_consecutive = 0
-                    current = 0
-                    for char in word.lower():
-                        if char.isalpha() and char not in 'aeiou':
-                            current += 1
-                            max_consecutive = max(max_consecutive, current)
-                        else:
-                            current = 0
-                    if max_consecutive > 5:
-                        return False
-            
-            return vowel_ratio > 0.1
-        
-        return True
 
-    # ==================== COLUMN-AWARE SORTING ====================
-    
-    def _column_aware_sort(self, results: List[Dict]) -> List[Dict]:
-        """Sort results by columns for proper reading order"""
-        pages: Dict[int, List[Dict]] = {}
+    def _remove_non_english(self, results: List[Dict]) -> List[Dict]:
+        """
+        Remove non-English text (including Hindi) - PRIORITY 3
+        """
+        cleaned = []
+        
         for r in results:
-            pages.setdefault(r.get("page", 1), []).append(r)
-
-        ordered = []
-        for page_num in sorted(pages.keys()):
-            page_items = pages[page_num]
-
-            if self.column_detection and len(page_items) > 6:
-                page_items = self._assign_columns(page_items)
+            text = r.get('text', '')
+            
+            if self._is_english_text(text):
+                cleaned.append(r)
             else:
-                for r in page_items:
-                    r["_col"] = 0
+                # Check if it's Hindi specifically
+                if self._is_hindi_text(text):
+                    self.stats['hindi_removed'] = self.stats.get('hindi_removed', 0) + 1
+                    logger.debug(f"🇮🇳 Hindi removed: '{text}'")
+                else:
+                    self.stats['non_english'] += 1
+                    logger.debug(f"🌐 Non-English removed: '{text}'")
+        
+        return cleaned
 
-            med_h = self._median_height(page_items)
-            band_size = max(1, med_h * 0.55)
-
-            def sort_key(r, pn=page_num, bs=band_size):
-                col = r.get("_col", 0)
-                y1 = r["bbox"][1]
-                band = int(y1 / bs)
-                x1 = r["bbox"][0]
-                return (pn, col, band, x1)
-
-            page_items = sorted(page_items, key=sort_key)
-            ordered.extend(page_items)
-
-        return ordered
-
-    def _assign_columns(self, items: List[Dict]) -> List[Dict]:
-        """Assign column numbers based on x-position"""
-        if not items:
-            return items
-
-        page_w = items[0].get("page_width", 0) or max(r["bbox"][2] for r in items)
-        if page_w <= 0:
-            for r in items:
-                r["_col"] = 0
-            return items
-
-        n_bins = 200
-        hist = np.zeros(n_bins, dtype=int)
-        for r in items:
-            xc = (r["bbox"][0] + r["bbox"][2]) / 2.0 / page_w
-            b = min(int(xc * n_bins), n_bins - 1)
-            hist[b] += 1
-
-        kernel = np.array([1, 2, 4, 6, 8, 6, 4, 2, 1], dtype=float)
-        kernel /= kernel.sum()
-        smoothed = np.convolve(hist, kernel, mode="same")
-
-        threshold = smoothed.max() * 0.03
-        min_gap_bins = max(3, int(self.min_col_gap_fraction * n_bins))
-
-        boundaries = []
-        gap_start = None
-        for i, v in enumerate(smoothed):
-            if v <= threshold:
-                if gap_start is None:
-                    gap_start = i
+    def _basic_filter(self, results: List[Dict]) -> List[Dict]:
+        """Basic statistical filtering"""
+        cleaned = []
+        for r in results:
+            text = r.get('text', '').strip()
+            conf = r.get('confidence', 0)
+            
+            if len(text) < self.min_text_length:
+                self.stats['too_short'] += 1
+                continue
+            if conf < self.min_confidence:
+                self.stats['low_conf'] += 1
+                continue
+            
+            # Apply text cleaning (includes Priority 1 & 2)
+            cleaned_text = self.text_cleaner.clean_text(text)
+            if cleaned_text:
+                r['text'] = cleaned_text
+                cleaned.append(r)
+                self.stats['kept'] += 1
             else:
-                if gap_start is not None:
-                    if (i - gap_start) >= min_gap_bins:
-                        gap_centre = (gap_start + i) // 2
-                        boundaries.append(int(gap_centre / n_bins * page_w))
-                    gap_start = None
+                self.stats['garbage'] += 1
+        
+        return cleaned
 
-        boundaries = boundaries[:7]
-
-        for r in items:
-            xc = (r["bbox"][0] + r["bbox"][2]) / 2.0
-            col = sum(1 for b in boundaries if xc > b)
-            r["_col"] = col
-
-        return items
-
-    # ==================== LINE MERGING ====================
-    
-    def _merge_lines(self, results: List[Dict]) -> List[Dict]:
-        """Merge adjacent word boxes into lines"""
-        if len(results) <= 1:
-            return results
-
-        merged = []
-        cur = results[0].copy()
-        th = self.merge_threshold
-
-        for nxt in results[1:]:
-            # Hard boundary 1: different page
-            if cur.get("page") != nxt.get("page"):
-                merged.append(cur)
-                cur = nxt.copy()
-                continue
-
-            # Hard boundary 2: different detected column
-            if cur.get("_col", 0) != nxt.get("_col", 0):
-                merged.append(cur)
-                cur = nxt.copy()
-                continue
-
-            # Hard boundary 3: X-gap fraction guard
-            page_w = cur.get("page_width", 0) or nxt.get("page_width", 0) or 0
-            x_gap = nxt["bbox"][0] - cur["bbox"][2]
-            if page_w > 0 and x_gap > self.max_merge_x_fraction * page_w:
-                merged.append(cur)
-                cur = nxt.copy()
-                continue
-
-            cur_h = cur["bbox"][3] - cur["bbox"][1]
-            nxt_h = nxt["bbox"][3] - nxt["bbox"][1]
-            cy = (cur["bbox"][1] + cur["bbox"][3]) / 2
-            ny = (nxt["bbox"][1] + nxt["bbox"][3]) / 2
-            h_gap = abs(cy - ny)
-
-            both_large = (cur_h >= self.large_text_height_px and
-                          nxt_h >= self.large_text_height_px)
-            effective_th = th * self.large_text_boost if both_large else th
-
-            same_line = h_gap < max(cur_h * 0.6, effective_th)
-            close_x = -effective_th * 2 < x_gap < effective_th * 5
-
-            if same_line and close_x:
-                cur["text"] += " " + nxt["text"]
-                cur["bbox"][2] = max(cur["bbox"][2], nxt["bbox"][2])
-                cur["bbox"][3] = max(cur["bbox"][3], nxt["bbox"][3])
-                cur["confidence"] = min(cur["confidence"], nxt["confidence"])
-            else:
-                merged.append(cur)
-                cur = nxt.copy()
-
-        merged.append(cur)
-
-        for r in merged:
-            r.pop("_col", None)
-
-        return merged
-
-    # ==================== TABLE DESCRIPTION STITCHING ====================
-    
-    def _stitch_table_descriptions(self, results: List[Dict]) -> List[Dict]:
-        """Stitch multi-line table descriptions"""
+    def _filter_corrupted_pages(self, results: List[Dict]) -> List[Dict]:
+        """Remove entire corrupted pages"""
         if not results:
             return results
-
-        pages: Dict[int, List[Dict]] = {}
+        
+        pages = {}
         for r in results:
-            pages.setdefault(r.get("page", 1), []).append(r)
-
-        out: List[Dict] = []
-
-        for page_num in sorted(pages.keys()):
-            items = pages[page_num]
-            if not items:
+            page = r.get('page', 1)
+            pages.setdefault(page, []).append(r)
+        
+        clean_results = []
+        for page_num, page_results in pages.items():
+            all_text = ' '.join([r.get('text', '') for r in page_results])
+            if len(all_text) < 10:
                 continue
-
-            page_w = items[0].get("page_width", 0) or max(r["bbox"][2] for r in items)
-            if page_w <= 0:
-                out.extend(items)
+            if self._is_page_corrupted(page_results):
+                logger.info(f"🗑️ Filtered corrupted page {page_num}")
                 continue
+            clean_results.extend(page_results)
+        
+        return clean_results
 
-            med_h = self._median_height(items)
-            used = [False] * len(items)
+    def _is_page_corrupted(self, page_results: List[Dict]) -> bool:
+        """Check if page is corrupted"""
+        all_text = ' '.join([r.get('text', '') for r in page_results])
+        if len(all_text) < 20:
+            return False
+        unique_chars = set(all_text.replace(' ', ''))
+        return len(unique_chars) <= 3
 
-            for i, row in enumerate(items):
-                if used[i]:
-                    continue
-
-                row_w = row["bbox"][2] - row["bbox"][0]
-                row_frac = row_w / page_w
-
-                if row_frac < 0.55:
-                    out.append(row)
-                    used[i] = True
-                    continue
-
-                combined_text = row["text"]
-                combined_bbox = list(row["bbox"])
-                combined_conf = row["confidence"]
-
-                for j in range(i + 1, len(items)):
-                    if used[j]:
-                        continue
-                    cont = items[j]
-                    cont_w = cont["bbox"][2] - cont["bbox"][0]
-                    cont_frac = cont_w / page_w
-
-                    if cont_frac >= 0.55:
-                        break
-
-                    y_dist = cont["bbox"][1] - combined_bbox[3]
-                    if y_dist > med_h * 2.5 or y_dist < -med_h * 0.5:
-                        break
-
-                    cont_x_frac = cont["bbox"][0] / page_w
-                    if not (0.15 < cont_x_frac < 0.65):
-                        break
-
-                    combined_text = combined_text + " " + cont["text"]
-                    combined_bbox[2] = max(combined_bbox[2], cont["bbox"][2])
-                    combined_bbox[3] = max(combined_bbox[3], cont["bbox"][3])
-                    combined_conf = min(combined_conf, cont["confidence"])
-                    used[j] = True
-
-                row = dict(row)
-                row["text"] = combined_text
-                row["bbox"] = combined_bbox
-                row["confidence"] = combined_conf
-                out.append(row)
-                used[i] = True
-
-            for i, item in enumerate(items):
-                if not used[i]:
-                    out.append(item)
-
-        return out
-
-    # ==================== HELPERS ====================
-    
-    def _median_height(self, results: List[Dict]) -> float:
-        """Calculate median height of text regions"""
-        heights = [r["bbox"][3] - r["bbox"][1]
-                   for r in results if r["bbox"][3] > r["bbox"][1]]
-        return float(np.median(heights)) if heights else 20.0
+    def _column_aware_sort(self, results: List[Dict]) -> List[Dict]:
+        """Sort by columns for reading order"""
+        if not results:
+            return results
+        
+        results.sort(key=lambda x: (x.get('page', 1), x['bbox'][1], x['bbox'][0]))
+        return results
 
 
 # ===========================================================================
-# BOUNDING BOX UTILITIES
+# Backward compatibility
+# ===========================================================================
+PostProcessor = EnhancedPostProcessor
+
+
+# ===========================================================================
+# Bounding Box Utilities
 # ===========================================================================
 
 def calculate_iou(box1: List[float], box2: List[float]) -> float:
@@ -548,27 +574,21 @@ def remove_overlapping_boxes(results: List[Dict], iou_threshold: float = 0.5) ->
     while ranked:
         best = ranked.pop(0)
         keep.append(best)
-        
-        # Filter out overlapping boxes
-        ranked = [r for r in ranked 
-                  if calculate_iou(best["bbox"], r["bbox"]) < iou_threshold]
+        ranked = [r for r in ranked if calculate_iou(best["bbox"], r["bbox"]) < iou_threshold]
     
     return keep
 
 
 # ===========================================================================
-# TEXT EXTRACTION
+# Text Extraction Utilities
 # ===========================================================================
 
 def extract_text_by_page(results: List[Dict]) -> Dict[int, str]:
     """Extract text grouped by page"""
-    pages: Dict[int, List[str]] = {}
+    pages = {}
     for r in results:
         page = r.get("page", 1)
-        if page not in pages:
-            pages[page] = []
-        pages[page].append(r.get("text", ""))
-    
+        pages.setdefault(page, []).append(r.get("text", ""))
     return {p: "\n".join(texts) for p, texts in sorted(pages.items())}
 
 
@@ -585,55 +605,33 @@ def export_to_txt(results: List[Dict], output_path) -> None:
             f.write(pages[page])
             f.write("\n\n")
     
-    logger.info(f"Exported text to {output_path}")
+    logger.info(f"📄 Exported text to {output_path}")
 
-
-# ===========================================================================
-# JSON I/O
-# ===========================================================================
 
 def save_results(results: List[Dict], output_path) -> None:
     """Save results as JSON"""
     output_path = Path(output_path)
     output_path.parent.mkdir(parents=True, exist_ok=True)
     
-    # Clean results for JSON
     clean = []
     for r in results:
-        clean_r = {}
-        for k, v in r.items():
-            if k not in ['_col', 'crop']:
-                if isinstance(v, (str, int, float, bool, list)) or v is None:
-                    clean_r[k] = v
+        clean_r = {k: v for k, v in r.items() 
+                  if k not in ['_col', 'crop'] and isinstance(v, (str, int, float, bool, list))}
         clean.append(clean_r)
     
     with open(output_path, 'w', encoding='utf-8') as f:
         json.dump(clean, f, indent=2, ensure_ascii=False)
     
-    logger.info(f"Saved results to {output_path}")
+    logger.info(f"💾 Saved results to {output_path}")
 
 
 # ===========================================================================
-# VISUALISATION
+# Visualization Utilities
 # ===========================================================================
 
-_ENGINE_COLORS = {
-    "surya": "#00C853",
-    "doctr": "#2196F3",
-    "trocr+dbnet": "#FF6D00",
-    "unknown": "#E91E63",
-}
-
-
-def visualize_results(
-    image: Image.Image,
-    results: List[Dict],
-    output_path: Optional[str] = None,
-    show_confidence: bool = True,
-    show_engine: bool = False,
-    alpha: float = 0.15,
-) -> Image.Image:
-    """Draw bounding boxes + labels with confidence heat coloring"""
+def visualize_results(image: Image.Image, results: List[Dict], output_path: Optional[str] = None,
+                     show_confidence: bool = True, alpha: float = 0.15) -> Image.Image:
+    """Draw bounding boxes on image"""
     vis = image.copy().convert("RGBA")
     overlay = Image.new("RGBA", vis.size, (0, 0, 0, 0))
     draw_ov = ImageDraw.Draw(overlay)
@@ -641,13 +639,12 @@ def visualize_results(
 
     try:
         font = ImageFont.truetype("arial.ttf", 12)
-    except Exception:
+    except:
         font = ImageFont.load_default()
 
     for r in results:
         bbox = [int(v) for v in r["bbox"]]
         conf = float(r.get("confidence", 1.0))
-        engine = r.get("engine", "unknown")
         color_hex = _conf_to_color(conf)
         color_rgb = _hex_to_rgb(color_hex)
 
@@ -657,17 +654,14 @@ def visualize_results(
         label = r["text"][:35] + ("…" if len(r["text"]) > 35 else "")
         if show_confidence:
             label += f"  {conf:.2f}"
-        if show_engine:
-            label += f" [{engine}]"
 
-        tx = bbox[0]
-        ty = max(0, bbox[1] - 15)
+        tx, ty = bbox[0], max(0, bbox[1] - 15)
         try:
             tb = draw.textbbox((tx, ty), label, font=font)
             if tb[2] < image.width and tb[3] < image.height:
                 draw.rectangle(tb, fill=color_hex)
                 draw.text((tx, ty), label, fill="white", font=font)
-        except Exception:
+        except:
             pass
 
     vis = Image.alpha_composite(vis, overlay).convert("RGB")
@@ -675,13 +669,13 @@ def visualize_results(
     if output_path:
         Path(output_path).parent.mkdir(parents=True, exist_ok=True)
         vis.save(output_path)
-        logger.info(f"Visualisation → {output_path}")
+        logger.info(f"🖼️ Visualisation → {output_path}")
 
     return vis
 
 
 def _conf_to_color(conf: float) -> str:
-    """Convert confidence score to color"""
+    """Convert confidence to color"""
     conf = max(0.0, min(1.0, conf))
     if conf >= 0.7:
         g = int(150 + 105 * (conf - 0.7) / 0.3)
@@ -695,6 +689,9 @@ def _conf_to_color(conf: float) -> str:
 
 
 def _hex_to_rgb(hex_color: str) -> Tuple[int, int, int]:
-    """Convert hex color to RGB tuple"""
     h = hex_color.lstrip("#")
     return tuple(int(h[i:i+2], 16) for i in (0, 2, 4))
+
+
+# Backward compatibility
+PostProcessor = EnhancedPostProcessor
