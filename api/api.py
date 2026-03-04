@@ -428,6 +428,9 @@ async def upload_and_process(
 # -------------------------------------------------
 # NEW ENDPOINT: Compare Textract vs DocTR using SBERT
 # -------------------------------------------------
+# -------------------------------------------------
+# COMPARE WITH TEXTRACT ENDPOINT - FIXED VERSION
+# -------------------------------------------------
 @app.post("/compare-with-textract")
 async def compare_with_textract(
     textract_json: UploadFile = File(..., description="Textract JSON file"),
@@ -436,7 +439,7 @@ async def compare_with_textract(
 ):
     """
     Compare Textract JSON with DocTR JSON using Sentence-BERT
-    Returns dashboard metrics with semantic similarity scores
+    Returns dashboard metrics with detailed comparison
     """
     logger.info(f"📊 Comparing Textract vs DocTR with model: {model_name}")
     logger.info(f"   Textract file: {textract_json.filename}")
@@ -459,7 +462,7 @@ async def compare_with_textract(
             logger.info("🔍 Running SBERT comparison...")
             results = compare_json_files(textract_path, doctr_path, model_name)
             
-            # Format for dashboard (matching your image)
+            # Format for dashboard with proper detailed comparison
             dashboard = {
                 "document": {
                     "name": doctr_json.filename.replace('.json', '.pdf'),
@@ -492,31 +495,54 @@ async def compare_with_textract(
                 "stats": results['stats']
             }
             
-            # Format detailed comparison for display
-            for pair in results['aligned_pairs']:
-                if pair['doctr']:
-                    dashboard['detailed_comparison'].append({
-                        "textract": pair['textract']['text'],
-                        "doctr": pair['doctr']['text'],
-                        "similarity": pair['similarity_percent'],
-                        "match_status": "exact" if pair['similarity'] > 0.95 else 
-                                      "similar" if pair['similarity'] > 0.7 else "different"
-                    })
-                else:
-                    dashboard['detailed_comparison'].append({
-                        "textract": pair['textract']['text'],
-                        "doctr": "(missing)",
-                        "similarity": 0,
-                        "match_status": "missing"
-                    })
+            # FIX: Populate detailed_comparison from aligned_pairs
+            if 'aligned_pairs' in results and results['aligned_pairs']:
+                logger.info(f"   Found {len(results['aligned_pairs'])} aligned pairs")
+                
+                for pair in results['aligned_pairs']:
+                    # Handle matched pairs (both textract and doctr exist)
+                    if pair.get('doctr') and pair.get('textract'):
+                        dashboard['detailed_comparison'].append({
+                            "textract_text": pair['textract']['text'],
+                            "doctr_text": pair['doctr']['text'],
+                            "similarity_score": pair['similarity_percent'],
+                            "match_status": "exact" if pair['similarity'] > 0.95 else 
+                                          "similar" if pair['similarity'] > 0.7 else "different"
+                        })
+                    # Handle missing DocTR matches (textract only)
+                    elif pair.get('textract') and not pair.get('doctr'):
+                        dashboard['detailed_comparison'].append({
+                            "textract_text": pair['textract']['text'],
+                            "doctr_text": "(missing)",
+                            "similarity_score": 0,
+                            "match_status": "missing"
+                        })
+                    # Handle missing Textract matches (doctr only) - optional
+                    elif pair.get('doctr') and not pair.get('textract'):
+                        dashboard['detailed_comparison'].append({
+                            "textract_text": "(missing)",
+                            "doctr_text": pair['doctr']['text'],
+                            "similarity_score": 0,
+                            "match_status": "missing"
+                        })
+            
+            # Add summary stats for debugging
+            dashboard['summary'] = {
+                'total_pairs': len(dashboard['detailed_comparison']),
+                'matched_pairs': results['stats'].get('matched_pairs', 0),
+                'unmatched_textract': results['stats'].get('unmatched_textract', 0),
+                'textract_blocks': results['stats'].get('textract_blocks', 0),
+                'doctr_blocks': results['stats'].get('doctr_blocks', 0)
+            }
             
             logger.info(f"✅ Comparison complete. Accuracy: {results['overall_accuracy']}%")
+            logger.info(f"   Detailed comparison has {len(dashboard['detailed_comparison'])} items")
+            
             return JSONResponse(content=dashboard)
             
         except Exception as e:
             logger.error(f"Comparison failed: {e}", exc_info=True)
             raise HTTPException(status_code=500, detail=str(e))
-
 
 # -------------------------------------------------
 # Get Preview Image Endpoint - MODIFIED FOR VERCEL

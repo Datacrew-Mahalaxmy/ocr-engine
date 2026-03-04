@@ -363,11 +363,11 @@ class EnhancedPostProcessor:
         }
 
     def process(self, results: List[Dict]) -> List[Dict]:
-        """Main processing pipeline with Priority 1,2,3 fixes"""
+        """Main processing pipeline"""
         if not results:
             return results
 
-        logger.info(f"🔧 Starting enhanced post-processing with Priority 1,2,3 fixes")
+        logger.info(f"🔧 Starting enhanced post-processing")
         original_count = len(results)
 
         # Step 1: Filter corrupted pages
