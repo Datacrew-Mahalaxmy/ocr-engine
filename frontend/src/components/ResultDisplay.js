@@ -1,3 +1,4 @@
+// ResultDisplay.jsx - React component to display OCR results with confidence metrics and type classification
 // ResultDisplay.jsx
 import React, { useEffect, useState } from 'react';
 

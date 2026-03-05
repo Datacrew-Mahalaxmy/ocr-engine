@@ -1,3 +1,4 @@
+// OCRBenchmark.jsx - Main React component for the OCR Benchmarking Dashboard
 // OCRBenchmark.jsx
 import React, { useState, useCallback, useEffect } from 'react';
 import { useDropzone } from 'react-dropzone';

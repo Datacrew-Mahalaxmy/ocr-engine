@@ -1,3 +1,4 @@
+/* DocumentSelector.js - React component for selecting expected document type */
 import React from 'react';
 
 const DOCUMENT_TYPES = [

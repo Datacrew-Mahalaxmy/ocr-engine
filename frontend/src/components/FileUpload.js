@@ -1,3 +1,5 @@
+/* FileUpload.js - React component for file upload with drag-and-drop support */
+
 import React, { useCallback } from 'react';
 import { useDropzone } from 'react-dropzone';
 
