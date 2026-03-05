@@ -1,6 +1,7 @@
 """
 sbert_similarity.py - Compare Textract and DocTR JSON using Sentence-BERT
 """
+"ghiri"
 
 import json
 import logging
