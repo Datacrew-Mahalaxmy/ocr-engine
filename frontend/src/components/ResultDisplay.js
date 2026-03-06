@@ -1,217 +1,107 @@
-// ResultDisplay.jsx - React component to display OCR results with confidence metrics and type classification
 // ResultDisplay.jsx
 import React, { useEffect, useState } from 'react';
 
-const ResultDisplay = ({ result, processing, onDownload }) => {
-  const [animatedConfidence, setAnimatedConfidence] = useState(0);
-  const [activeTab, setActiveTab] = useState('visual'); // 'visual' or 'text'
+const ResultDisplay = ({ result, processing }) => {
+  const [activeTab, setActiveTab] = useState('statement');
+  const [voiceMessage, setVoiceMessage] = useState('');
 
   useEffect(() => {
-    if (result?.confidence) {
-      const timer = setTimeout(() => {
-        setAnimatedConfidence(result.confidence * 100);
-      }, 100);
-      return () => clearTimeout(timer);
+    if (result) {
+      generateVoiceStatement();
     }
   }, [result]);
 
+  const generateVoiceStatement = () => {
+    const confidence = (result.confidence * 100).toFixed(1);
+    const expected = result.expectedDisplay;
+    const detected = result.actualDisplay;
+    
+    const allText = Object.values(result.extractedText || {}).join(' ');
+    const wordCount = allText.split(/\s+/).filter(word => word.length > 0).length;
+    
+    let statement = '';
+    
+    if (result.isMatch) {
+      statement = `✅ DOCUMENT VERIFIED. Expected ${expected} and detected ${detected} with ${confidence}% confidence. ${wordCount} words extracted from ${result.totalRegions || 0} regions.`;
+    } else {
+      statement = `❌ DOCUMENT REJECTED. Expected ${expected} but detected ${detected} with only ${confidence}% confidence. ${wordCount} words extracted from ${result.totalRegions || 0} regions.`;
+    }
+    
+    setVoiceMessage(statement);
+  };
+
   if (processing) {
     return (
-      <div className="creative-processing">
-        <div className="processing-animation">
-          <div className="pulse-ring"></div>
-          <div className="processing-icon">🔍</div>
-        </div>
-        <h3>Analyzing Document</h3>
-        <p>Our AI is extracting and classifying content...</p>
-        <div className="processing-steps">
-          <span className="step active">📄 Extracting</span>
-          <span className="step">🔬 Analyzing</span>
-          <span className="step">🎯 Classifying</span>
-        </div>
+      <div className="processing-message">
+        <div className="processing-icon">🔍</div>
+        <p>Processing document... Please wait.</p>
       </div>
     );
   }
 
   if (!result) {
     return (
-      <div className="creative-empty">
-        <div className="empty-illustration">
-          <svg width="200" height="200" viewBox="0 0 100 100">
-            <circle cx="50" cy="40" r="30" fill="#f0f9ff" stroke="#911467" strokeWidth="2" strokeDasharray="4 4"/>
-            <path d="M30 70 L50 50 L70 70" stroke="#911467" strokeWidth="3" fill="none" strokeLinecap="round"/>
-            <rect x="40" y="75" width="20" height="15" fill="#e0e7ff" rx="4"/>
-          </svg>
-        </div>
-        <h3>Ready for Analysis</h3>
-        <p>Upload a document to see intelligent results</p>
-        <div className="empty-features">
-          <span>📊 Confidence Metrics</span>
-          <span>🎯 Type Classification</span>
-          <span>📝 Text Extraction</span>
-        </div>
+      <div className="empty-message">
+        <p>👆 Upload a document to see analysis results</p>
       </div>
     );
   }
 
-  const confidencePercentage = (result.confidence * 100).toFixed(1);
   const allText = Object.values(result.extractedText || {}).join(' ');
   const wordCount = allText.split(/\s+/).filter(word => word.length > 0).length;
 
   return (
-    <div className="creative-result">
-      {/* Result Tabs */}
-      <div className="result-tabs">
+    <div className="result-container">
+      {/* Tab Navigation */}
+      <div className="result-tabs-minimal">
         <button 
-          className={`tab-btn ${activeTab === 'visual' ? 'active' : ''}`}
-          onClick={() => setActiveTab('visual')}
+          className={`tab-btn-minimal ${activeTab === 'statement' ? 'active' : ''}`}
+          onClick={() => setActiveTab('statement')}
         >
-          <span>📊</span> Visual Dashboard
+          <span>🤖</span> Machine Statement
         </button>
         <button 
-          className={`tab-btn ${activeTab === 'text' ? 'active' : ''}`}
+          className={`tab-btn-minimal ${activeTab === 'text' ? 'active' : ''}`}
           onClick={() => setActiveTab('text')}
         >
-          <span>📝</span> Extracted Text
+          <span>📝</span> Extracted Text ({wordCount} words)
         </button>
       </div>
 
-      {/* Visual Dashboard Tab */}
-      {activeTab === 'visual' && (
-        <div className="visual-dashboard">
-          {/* Status Hero Card */}
-          <div className={`status-hero ${result.isMatch ? 'match' : 'mismatch'}`}>
-            <div className="status-icon">
-              {result.isMatch ? '✓' : '✕'}
-            </div>
-            <div className="status-content">
-              <h2>{result.isMatch ? 'Document Verified' : 'Type Mismatch Detected'}</h2>
-              <p>{result.isMatch ? 'Perfect match with expected document type' : 'Document type does not match expectation'}</p>
-            </div>
+      {/* Machine Statement Tab */}
+      {activeTab === 'statement' && (
+        <div className="statement-container">
+          <div className={`statement-badge ${result.isMatch ? 'success' : 'error'}`}>
+            {result.isMatch ? '✓ VERIFIED' : '✗ REJECTED'}
           </div>
-
-          {/* Metrics Dashboard - 3 columns */}
-          <div className="metrics-dashboard">
-            {/* Confidence Gauge - Centered */}
-            <div className="gauge-card">
-              <h4 className="gauge-title">Confidence Score</h4>
-              <div className="gauge-chart">
-                <svg viewBox="0 0 120 120" className="gauge-svg">
-                  <defs>
-                    <linearGradient id="gaugeGradient" x1="0%" y1="0%" x2="100%" y2="0%">
-                      <stop offset="0%" stopColor="#ef4444" />
-                      <stop offset="50%" stopColor="#f59e0b" />
-                      <stop offset="100%" stopColor="#10b981" />
-                    </linearGradient>
-                  </defs>
-                  <circle cx="60" cy="60" r="54" fill="none" stroke="#e5e7eb" strokeWidth="12"/>
-                  <circle
-                    cx="60"
-                    cy="60"
-                    r="54"
-                    fill="none"
-                    stroke="url(#gaugeGradient)"
-                    strokeWidth="12"
-                    strokeLinecap="round"
-                    strokeDasharray="339.292"
-                    strokeDashoffset={339.292 - (339.292 * animatedConfidence) / 100}
-                    transform="rotate(-90 60 60)"
-                    style={{ transition: 'stroke-dashoffset 1s ease' }}
-                  />
-                </svg>
-                <div className="gauge-center">
-                  <span className="gauge-value">{confidencePercentage}%</span>
-                  <span className="gauge-label">Confidence</span>
-                </div>
-              </div>
-            </div>
-
-            {/* Type Analysis Card */}
-            <div className="type-card">
-              <h4>Document Type Analysis</h4>
-              <div className="type-comparison">
-                <div className="type-item">
-                  <span className="type-label">Expected</span>
-                  <span className="type-badge expected">{result.expectedDisplay}</span>
-                </div>
-                <div className="vs-divider">VS</div>
-                <div className="type-item">
-                  <span className="type-label">Detected</span>
-                  <span className="type-badge detected">{result.actualDisplay}</span>
-                </div>
-              </div>
-              <div className="match-indicator">
-                <div className="match-bar">
-                  <div 
-                    className="match-fill" 
-                    style={{ 
-                      width: result.isMatch ? '100%' : '0%',
-                      background: result.isMatch ? '#10b981' : '#ef4444'
-                    }}
-                  />
-                </div>
-                <span>{result.isMatch ? 'Exact Match' : 'No Match'}</span>
-              </div>
-            </div>
-
-            {/* Statistics Card - With all stats */}
-            <div className="stats-card">
-              <h4>Document Statistics</h4>
-              <div className="stats-list">
-                <div className="stat-row">
-                  <span>📄 Total Regions</span>
-                  <strong>{result.totalRegions || 0}</strong>
-                </div>
-                <div className="stat-row">
-                  <span>📝 Words Extracted</span>
-                  <strong>{wordCount}</strong>
-                </div>
-                <div className="stat-row">
-                  <span>🔤 Characters</span>
-                  <strong>{allText.length}</strong>
-                </div>
-                
-              </div>
-            </div>
-          </div>
-
-          {/* Action Buttons */}
-          <div className="result-actions">
-            <button className="action-btn primary" onClick={onDownload}>
-              <span>⬇️</span>
-              Download JSON Report
-            </button>
-            {result.confidence < 0.5 && (
-              <div className="warning-message">
-                <span>⚠️</span>
-                Low confidence detection - manual verification recommended
-              </div>
-            )}
+          <div className="statement-content">
+            <div className="machine-icon-large">🤖</div>
+            <p className="machine-statement">{voiceMessage}</p>
           </div>
         </div>
       )}
 
       {/* Extracted Text Tab */}
       {activeTab === 'text' && (
-        <div className="text-tab">
-          <div className="text-header">
-            <h3>📝 Extracted Text Content</h3>
-            <span className="text-stats">{wordCount} words • {allText.length} characters</span>
+        <div className="extracted-text-container">
+          <div className="text-header-minimal">
+            <h3>📄 Extracted Text</h3>
+            <span className="text-stats-minimal">{wordCount} words • {allText.length} characters</span>
           </div>
           
-          <div className="text-content-wrapper">
+          <div className="text-content-minimal">
             {Object.keys(result.extractedText || {}).length > 0 ? (
               Object.entries(result.extractedText).map(([page, text]) => (
-                <div key={page} className="page-card">
-                  <div className="page-header">
-                    <span className="page-number">Page {page}</span>
-                    <span className="word-count">{text.split(/\s+/).filter(w => w.length > 0).length} words</span>
+                <div key={page} className="page-card-minimal">
+                  <div className="page-header-minimal">
+                    <span className="page-number-minimal">Page {page}</span>
+                    <span className="word-count-minimal">{text.split(/\s+/).filter(w => w.length > 0).length} words</span>
                   </div>
-                  <pre className="ocr-text">{text}</pre>
+                  <pre className="ocr-text-minimal">{text}</pre>
                 </div>
               ))
             ) : (
-              <div className="empty-text-message">
+              <div className="empty-text-minimal">
                 <p>No text extracted from this document</p>
               </div>
             )}
